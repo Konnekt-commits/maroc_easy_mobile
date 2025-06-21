@@ -1287,7 +1287,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                                                 urlTemplate:
                                                     'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                                                 userAgentPackageName:
-                                                    'com.konnekt.maroc_easy',
+                                                    'com.konnekt.maroceasy',
                                               ),
                                               MarkerLayer(
                                                 markers:

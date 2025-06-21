@@ -671,7 +671,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                                     urlTemplate:
                                         'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                                     userAgentPackageName:
-                                        'com.konnekt.maroc_easy',
+                                        'com.konnekt.maroceasy',
                                   ),
                                   CircleLayer(
                                     circles: [

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:maroc_easy/screens/admin/manage_cities.dart';
-import 'package:maroc_easy/screens/admin/manage_discoveries.dart';
-import 'package:maroc_easy/screens/admin/manage_properties.dart';
-import 'package:maroc_easy/screens/admin/manage_reviews.dart';
-import 'package:maroc_easy/screens/admin/manage_categories.dart';
+import 'package:maroceasy/screens/admin/manage_cities.dart';
+import 'package:maroceasy/screens/admin/manage_discoveries.dart';
+import 'package:maroceasy/screens/admin/manage_properties.dart';
+import 'package:maroceasy/screens/admin/manage_reviews.dart';
+import 'package:maroceasy/screens/admin/manage_categories.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({Key? key}) : super(key: key);

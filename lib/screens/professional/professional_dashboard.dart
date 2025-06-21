@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:maroc_easy/screens/professional/manage_my_properties.dart';
+import 'package:maroceasy/screens/professional/manage_my_properties.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfessionalDashboard extends StatefulWidget {

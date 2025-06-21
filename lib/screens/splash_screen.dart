@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:maroc_easy/screens/professional/professional_dashboard.dart';
+import 'package:maroceasy/screens/professional/professional_dashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:maroc_easy/screens/home_page.dart';
-import 'package:maroc_easy/screens/login_page.dart';
-import 'package:maroc_easy/screens/admin/admin_dashboard.dart';
+import 'package:maroceasy/screens/home_page.dart';
+import 'package:maroceasy/screens/login_page.dart';
+import 'package:maroceasy/screens/admin/admin_dashboard.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);

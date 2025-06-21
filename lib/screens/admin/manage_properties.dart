@@ -4,8 +4,8 @@ import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:maroc_easy/widgets/category_form_type.dart';
-import 'package:maroc_easy/widgets/loader.dart';
+import 'package:maroceasy/widgets/category_form_type.dart';
+import 'package:maroceasy/widgets/loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as latlong;
@@ -1613,7 +1613,7 @@ class _ManagePropertiesState extends State<ManageProperties> {
                                                 urlTemplate:
                                                     'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                                                 userAgentPackageName:
-                                                    'com.konnekt.maroc_easy',
+                                                    'com.konnekt.maroceasy',
                                               ),
                                               MarkerLayer(
                                                 markers:

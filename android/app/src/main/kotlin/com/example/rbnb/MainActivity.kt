@@ -1,4 +1,4 @@
-package com.konnekt.maroc_easy
+package com.konnekt.maroceasy
 
 import io.flutter.embedding.android.FlutterActivity
 

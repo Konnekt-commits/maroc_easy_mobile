@@ -1,4 +1,4 @@
-# maroc_easy
+# maroceasy
 
 A new Flutter project.
 

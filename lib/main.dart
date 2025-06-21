@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:maroc_easy/screens/splash_screen.dart';
-import 'package:maroc_easy/screens/login_page.dart';
-import 'package:maroc_easy/screens/register_page.dart';
-import 'package:maroc_easy/screens/home_page.dart';
-import 'package:maroc_easy/screens/admin/admin_dashboard.dart';
-import 'package:maroc_easy/screens/professional/professional_dashboard.dart';
+import 'package:maroceasy/screens/splash_screen.dart';
+import 'package:maroceasy/screens/login_page.dart';
+import 'package:maroceasy/screens/register_page.dart';
+import 'package:maroceasy/screens/home_page.dart';
+import 'package:maroceasy/screens/admin/admin_dashboard.dart';
+import 'package:maroceasy/screens/professional/professional_dashboard.dart';
 
 void main() {
   runApp(const MyApp());

@@ -1,6 +1,6 @@
 {
-    "name": "maroc_easy",
-    "short_name": "maroc_easy",
+    "name": "maroceasy",
+    "short_name": "maroceasy",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:maroc_easy/widgets/cropperImage.dart';
-import 'package:maroc_easy/widgets/imageOption.dart';
+import 'package:maroceasy/widgets/cropperImage.dart';
+import 'package:maroceasy/widgets/imageOption.dart';
 import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
