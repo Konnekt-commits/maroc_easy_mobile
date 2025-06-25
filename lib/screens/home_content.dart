@@ -313,6 +313,18 @@ class _HomeContentState extends State<HomeContent> {
     }
   }
 
+  double getAverageNote(List<dynamic> avisList) {
+    if (avisList.isEmpty) return 0.0;
+
+    double total = 0;
+    for (var avis in avisList) {
+      final noteStr = avis['note'] ?? '0';
+      total += double.tryParse(noteStr) ?? 0;
+    }
+
+    return total / avisList.length;
+  }
+
   fetchVilles() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
@@ -577,10 +589,13 @@ class _HomeContentState extends State<HomeContent> {
                               ? List.generate(4, (index) => LoaderAnnonce())
                               : List.generate(_annonces.length, (index) {
                                 return PropertyCard(
+                                  category: _annonces[index]["category"]["nom"],
                                   title: _annonces[index]["nom"],
                                   location: _annonces[index]["adresse"],
                                   price: '${_annonces[index]["prix"]}€',
-                                  rating: 4.5,
+                                  rating: getAverageNote(
+                                    _annonces[index]["maeAvis"] ?? [],
+                                  ),
                                   imageUrls:
                                       (_annonces[index]["galeriesPhoto"]
                                               as List<dynamic>)

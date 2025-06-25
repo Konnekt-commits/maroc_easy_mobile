@@ -4,6 +4,7 @@ class PropertyCard extends StatelessWidget {
   final String title;
   final String location;
   final String price;
+  final String category;
   final double rating;
   final List<String> imageUrls;
   final VoidCallback onTap;
@@ -16,6 +17,7 @@ class PropertyCard extends StatelessWidget {
     required this.rating,
     required this.imageUrls,
     required this.onTap,
+    required this.category,
   }) : super(key: key);
 
   @override
@@ -78,7 +80,7 @@ class PropertyCard extends StatelessWidget {
                           const Icon(Icons.star, color: Colors.amber, size: 18),
                           const SizedBox(width: 4),
                           Text(
-                            rating.toString(),
+                            rating == 0 ? "N/A" : rating.toString(),
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -90,10 +92,20 @@ class PropertyCard extends StatelessWidget {
                   Text(location, style: TextStyle(color: Colors.grey[600])),
                   const SizedBox(height: 6),
                   // Price
-                  Text(
-                    price + ' / nuit',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  if (category == 'Shopping' || category == 'Restaurant')
+                    Text(
+                      "À partir de " + price,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    )
+                  else
+                    Text(
+                      category == 'Santé'
+                          ? "Contactez-nous"
+                          : category == 'Logement'
+                          ? price + ' / nuit'
+                          : price,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                 ],
               ),
             ),

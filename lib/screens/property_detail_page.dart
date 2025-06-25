@@ -1384,184 +1384,190 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                   topRight: Radius.circular(20),
                 ),
               ),
-              // Wrap the Column with a Scaffold to handle keyboard insets properly
               child: Scaffold(
                 backgroundColor: Colors.transparent,
-                // Use resizeToAvoidBottomInset to adjust for keyboard
                 resizeToAvoidBottomInset: true,
-                body: Column(
-                  children: [
-                    // En-tête des commentaires
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 12.0,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.arrow_back),
-                            onPressed: () {
-                              setState(() {
-                                _showComments = false;
-                              });
-                            },
-                          ),
-                          Text(
-                            '${_avis.length} commentaire(s)',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                body: SafeArea(
+                  // Ajout de SafeArea pour éviter la barre d'état
+                  child: Column(
+                    children: [
+                      // En-tête des commentaires
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 12.0,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back),
+                              onPressed: () {
+                                setState(() {
+                                  _showComments = false;
+                                });
+                              },
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Liste des commentaires - Move this above the comment input
-                    Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        children: List.generate(_avis.length, (index) {
-                          return CommentItem(
-                            onDelete:
-                                () => _showDeleteConfirmation(_avis[index]),
-                            onEdit: () => _showEditCommentDialog(_avis[index]),
-                            canModify: _avis[index]["user"]['id'] == user_id,
-                            isImage: true,
-                            rate: double.parse(_avis[index]["note"]),
-                            name: _avis[index]["user"]['pseudoName'],
-                            date: getRelativeTime(
-                              DateTime.parse(_avis[index]["dateAvis"]),
-                            ),
-                            duration: 'Séjour de quelques nuits',
-                            comment: _avis[index]['commentaire'],
-                            language: 'français',
-                            years: 'Client MarocEasy',
-                            avatar: _avis[index]["user"]['picto'],
-                          );
-                        }),
-                      ),
-                    ),
-
-                    // Barre de commentaire - Move this to the bottom
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          // Rating bar
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Votre note: ',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                            Text(
+                              '${_avis.length} commentaire(s)',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
                               ),
-                              SizedBox(width: 8),
-                              RatingBar.builder(
-                                initialRating: 5,
-                                minRating: 1,
-                                direction: Axis.horizontal,
-                                allowHalfRating: true,
-                                itemCount: 5,
-                                itemSize: 30,
-                                itemPadding: EdgeInsets.symmetric(
-                                  horizontal: 2.0,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Liste des commentaires
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          children: List.generate(_avis.length, (index) {
+                            return CommentItem(
+                              onDelete:
+                                  () => _showDeleteConfirmation(_avis[index]),
+                              onEdit:
+                                  () => _showEditCommentDialog(_avis[index]),
+                              canModify: _avis[index]["user"]['id'] == user_id,
+                              isImage: true,
+                              rate: double.parse(_avis[index]["note"]),
+                              name: _avis[index]["user"]['pseudoName'],
+                              date: getRelativeTime(
+                                DateTime.parse(_avis[index]["dateAvis"]),
+                              ),
+                              duration: 'Séjour de quelques nuits',
+                              comment: _avis[index]['commentaire'],
+                              language: 'français',
+                              years: 'Client MarocEasy',
+                              avatar: _avis[index]["user"]['picto'],
+                            );
+                          }),
+                        ),
+                      ),
+
+                      // Barre de commentaire
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          children: [
+                            // Rating bar
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  'Votre note: ',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
-                                itemBuilder:
-                                    (context, _) =>
-                                        Icon(Icons.star, color: Colors.amber),
-                                onRatingUpdate: (rating) {
-                                  // Store the rating value
-                                  setState(() {
-                                    _userRating = rating;
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 12),
-                          // Comment input field and send button
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _commentController,
-                                  decoration: InputDecoration(
-                                    hintText: 'Votre commentaire',
-                                    prefixIcon: const Icon(Icons.comment),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                      borderSide: BorderSide.none,
+                                const SizedBox(width: 8),
+                                RatingBar.builder(
+                                  initialRating: 5,
+                                  minRating: 1,
+                                  direction: Axis.horizontal,
+                                  allowHalfRating: true,
+                                  itemCount: 5,
+                                  itemSize: 30,
+                                  itemPadding: const EdgeInsets.symmetric(
+                                    horizontal: 2.0,
+                                  ),
+                                  itemBuilder:
+                                      (context, _) => const Icon(
+                                        Icons.star,
+                                        color: Colors.amber,
+                                      ),
+                                  onRatingUpdate: (rating) {
+                                    setState(() {
+                                      _userRating = rating;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            // Comment input field and send button
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _commentController,
+                                    decoration: InputDecoration(
+                                      hintText: 'Votre commentaire',
+                                      prefixIcon: const Icon(Icons.comment),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(30),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      filled: true,
+                                      fillColor: Colors.grey[200],
                                     ),
-                                    filled: true,
-                                    fillColor: Colors.grey[200],
                                   ),
                                 ),
-                              ),
-                              SizedBox(
-                                width: 50,
-                                child: IconButton(
-                                  color: Colors.pink,
-                                  onPressed: () {
-                                    // Send the comment with rating
-                                    if (_commentController.text.isNotEmpty) {
-                                      addReview(
-                                        _userRating,
-                                        _commentController.text,
-                                      ).then((success) {
-                                        if (success) {
-                                          // Clear the input field
-                                          _commentController.clear();
-                                          // Refresh comments
-                                          fetchAvis();
-                                          // Show success message
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                'Commentaire ajouté avec succès',
+                                SizedBox(
+                                  width: 50,
+                                  child: IconButton(
+                                    color: Colors.pink,
+                                    onPressed: () {
+                                      // Fermer le clavier
+                                      FocusScope.of(context).unfocus();
+
+                                      // Envoyer le commentaire avec la note
+                                      if (_commentController.text.isNotEmpty) {
+                                        addReview(
+                                          _userRating,
+                                          _commentController.text,
+                                        ).then((success) {
+                                          if (success) {
+                                            // Effacer le champ de texte
+                                            _commentController.clear();
+                                            // Rafraîchir les commentaires
+                                            fetchAvis();
+                                            // Afficher un message de succès
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Commentaire ajouté avec succès',
+                                                ),
+                                                backgroundColor: Colors.green,
                                               ),
-                                              backgroundColor: Colors.green,
-                                            ),
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                'Erreur lors de l\'ajout du commentaire',
+                                            );
+                                          } else {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Erreur lors de l\'ajout du commentaire',
+                                                ),
+                                                backgroundColor: Colors.red,
                                               ),
-                                              backgroundColor: Colors.red,
+                                            );
+                                          }
+                                        });
+                                      } else {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Veuillez ajouter un commentaire',
                                             ),
-                                          );
-                                        }
-                                      });
-                                    } else {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Veuillez ajouter un commentaire',
+                                            backgroundColor: Colors.orange,
                                           ),
-                                          backgroundColor: Colors.orange,
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  icon: const Icon(Icons.send),
+                                        );
+                                      }
+                                    },
+                                    icon: const Icon(Icons.send),
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
