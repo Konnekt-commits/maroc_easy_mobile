@@ -111,7 +111,7 @@ class _HomeContentState extends State<HomeContent> {
     final token = prefs.getString('token');
     final response = await http.get(
       Uri.parse(
-        "https://maroceasy.konnekt.fr/api/decouvertes?page=1&ville.id=$_villeId",
+        "https://maroceasy.konnekt.fr/api/decouvertes?page=1&ville.id=$_villeId&category.id=$_selectedCategoryIndex",
       ),
       headers: {
         'Authorization': 'Bearer $token',
@@ -466,6 +466,7 @@ class _HomeContentState extends State<HomeContent> {
                             setState(() {
                               _selectedCategoryIndex = _categories[index]['id'];
                             });
+                            fetchDecouvertes();
                             fetchAnnonces();
                           },
                           child: _buildCategoryItem(
@@ -590,11 +591,93 @@ class _HomeContentState extends State<HomeContent> {
                                           .toList(),
 
                                   onTap: () {
+                                    List<String> amenities = [];
+
+                                    if (_annonces[index]["category"]["nom"] ==
+                                        "Voiture") {
+                                      final comodites =
+                                          (_annonces[index]["comodites"] ?? [])
+                                              as List;
+                                      final services =
+                                          (_annonces[index]["services"] ?? [])
+                                              as List;
+
+                                      amenities =
+                                          [
+                                            ...comodites,
+                                            ...services,
+                                          ].map((e) => e.toString()).toList();
+                                    } else {
+                                      amenities =
+                                          ((_annonces[index]["comodites"] ?? [])
+                                                  as List)
+                                              .map((e) => e.toString())
+                                              .toList();
+                                    }
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder:
                                             (context) => PropertyDetailPage(
+                                              type:
+                                                  _annonces[index]["category"]["nom"],
+                                              horaires:
+                                                  ((_annonces[index]["category"]["nom"] ==
+                                                                  "Santé" ||
+                                                              _annonces[index]["category"]["nom"] ==
+                                                                  "Shopping" ||
+                                                              _annonces[index]["category"]["nom"] ==
+                                                                  "Restaurant") &&
+                                                          _annonces[index]["horaires"] !=
+                                                              null &&
+                                                          _annonces[index]["horaires"]
+                                                              is Map<
+                                                                String,
+                                                                dynamic
+                                                              >)
+                                                      ? (_annonces[index]["horaires"]
+                                                          as Map<
+                                                            String,
+                                                            dynamic
+                                                          >)
+                                                      : <String, dynamic>{},
+                                              services:
+                                                  (_annonces[index]["category"]["nom"] ==
+                                                              "Santé" &&
+                                                          _annonces[index]["services"] !=
+                                                              null)
+                                                      ? (_annonces[index]["services"]
+                                                              as List)
+                                                          .map(
+                                                            (e) => e.toString(),
+                                                          )
+                                                          .toList()
+                                                      : <String>[],
+                                              langues:
+                                                  (_annonces[index]["category"]["nom"] ==
+                                                              "Santé" &&
+                                                          _annonces[index]["langues"] !=
+                                                              null)
+                                                      ? (_annonces[index]["langues"]
+                                                              as List)
+                                                          .map(
+                                                            (e) => e.toString(),
+                                                          )
+                                                          .toList()
+                                                      : <String>[],
+
+                                              moyensDePaiement:
+                                                  (_annonces[index]["category"]["nom"] ==
+                                                              "Santé" &&
+                                                          _annonces[index]["moyensPaiement"] !=
+                                                              null)
+                                                      ? (_annonces[index]["moyensPaiement"]
+                                                              as List)
+                                                          .map(
+                                                            (e) => e.toString(),
+                                                          )
+                                                          .toList()
+                                                      : <String>[],
                                               id: _annonces[index]["id"],
                                               phone:
                                                   _annonces[index]["telephone"],
@@ -606,10 +689,7 @@ class _HomeContentState extends State<HomeContent> {
                                               rating: 4.5,
                                               description:
                                                   _annonces[index]["descriptionLongue"],
-                                              amenities:
-                                                  (_annonces[index]["comodites"]
-                                                          as List)
-                                                      .cast<String>(),
+                                              amenities: amenities,
                                               imageUrls:
                                                   (_annonces[index]["galeriesPhoto"]
                                                           as List<dynamic>)

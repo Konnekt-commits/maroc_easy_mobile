@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http_parser/http_parser.dart'; // Added import for MediaType
 import 'login_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -68,73 +69,6 @@ class _ProfilePageState extends State<ProfilePage> {
     if (image != null) {
       setState(() {
         _newProfileImage = File(image.path);
-      });
-
-      // Upload the new profile image
-      _uploadProfileImage();
-    }
-  }
-
-  Future<void> _uploadProfileImage() async {
-    if (_newProfileImage == null) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token') ?? '';
-
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('https://maroceasy.konnekt.fr/api/users/profile-image'),
-      );
-
-      request.headers['Authorization'] = 'Bearer $token';
-
-      request.files.add(
-        await http.MultipartFile.fromPath('pictoFile', _newProfileImage!.path),
-      );
-
-      var response = await request.send();
-      var responseData = await response.stream.bytesToString();
-
-      if (response.statusCode == 200) {
-        // Update user data in SharedPreferences with new profile image
-        final responseJson = jsonDecode(responseData);
-        if (responseJson['picto'] != null) {
-          _userData['picto'] = responseJson['picto'];
-
-          // Update userData in SharedPreferences
-          await prefs.setString('userData', jsonEncode(_userData));
-
-          setState(() {
-            // Update the UI with new data
-          });
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Photo de profil mise à jour avec succès'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur lors de la mise à jour de la photo'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
       });
     }
   }
@@ -297,23 +231,34 @@ class _ProfilePageState extends State<ProfilePage> {
                           final prefs = await SharedPreferences.getInstance();
                           final token = prefs.getString('token') ?? '';
 
+                          final userId =
+                              _userData['id']; // Assure-toi que cet ID est bien présent
                           final uri = Uri.parse(
-                            'https://maroceasy.konnekt.fr/api/users/${_userData['id']}',
+                            'https://maroceasy.konnekt.fr/api/users-update/$userId',
                           );
+                          final picto =
+                              "profile_${DateTime.now().millisecondsSinceEpoch}.jpg";
+
                           final request =
-                              http.MultipartRequest('PATCH', uri)
+                              http.MultipartRequest('POST', uri)
                                 ..headers['Authorization'] = 'Bearer $token'
                                 ..fields['nom'] = _nomController.text
                                 ..fields['prenom'] = _prenomController.text
-                                ..fields['email'] = _emailController.text;
+                                ..fields['email'] = _emailController.text
+                                ..fields['roles'] = ''
+                                ..fields['password'] = ''
+                                ..fields['pseudoName'] = '';
 
                           if (tempProfileImage != null) {
                             request.files.add(
                               await http.MultipartFile.fromPath(
                                 'pictoFile',
                                 tempProfileImage!.path,
-                                filename:
-                                    'profile_${DateTime.now().millisecondsSinceEpoch}.png',
+                                filename: picto,
+                                contentType: MediaType(
+                                  'image',
+                                  'jpeg',
+                                ), // Si nécessaire
                               ),
                             );
                           }
@@ -322,14 +267,16 @@ class _ProfilePageState extends State<ProfilePage> {
                           final responseString =
                               await response.stream.bytesToString();
 
-                          if (response.statusCode == 200) {
+                          if (response.statusCode == 200 ||
+                              response.statusCode == 201) {
                             final json = jsonDecode(responseString);
+                            print("object: $json");
 
                             _userData['nom'] = _nomController.text;
                             _userData['prenom'] = _prenomController.text;
                             _userData['email'] = _emailController.text;
-                            if (json['picto'] != null) {
-                              _userData['picto'] = json['picto'];
+                            if (json['user']['picto'] != null) {
+                              _userData['picto'] = json['user']['picto'];
                             }
 
                             await prefs.setString(
@@ -340,7 +287,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             if (mounted) {
                               setState(() {});
                               ScaffoldMessenger.of(parentContext).showSnackBar(
-                                SnackBar(
+                                const SnackBar(
                                   content: Text(
                                     'Profil mis à jour avec succès',
                                   ),
@@ -353,7 +300,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               ScaffoldMessenger.of(parentContext).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    'Erreur lors de la mise à jour du profil',
+                                    'Erreur ${response.statusCode} lors de la mise à jour du profil',
                                   ),
                                   backgroundColor: Colors.red,
                                 ),

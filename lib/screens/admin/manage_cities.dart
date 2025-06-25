@@ -184,32 +184,22 @@ class _ManageCitiesState extends State<ManageCities> {
       final token = prefs.getString('token');
 
       if (token == null) {
-        throw Exception('Not authenticated');
+        throw Exception('Non authentifié');
       }
 
-      // Create multipart request
-      var request = http.MultipartRequest(
-        'POST', // Using POST with method override for PUT
-        Uri.parse('https://maroceasy.konnekt.fr/api/villes/$cityId'),
-      );
-
-      // Add headers
-      request.headers.addAll({
-        'Authorization': 'Bearer $token',
-        'accept': 'application/ld+json',
-        'X-HTTP-Method-Override': 'PUT', // Override method to PUT
-      });
-
-      // Add text fields
-      request.fields['nom'] = _nameController.text;
+      final uri = Uri.parse('https://maroceasy.konnekt.fr/api/villes/$cityId');
+      final request =
+          http.MultipartRequest('POST', uri)
+            ..headers['Authorization'] = 'Bearer $token'
+            ..headers['accept'] = 'application/ld+json'
+            ..fields['nom'] = _nameController.text;
 
       if (_regionController.text.isNotEmpty) {
         request.fields['region'] = _regionController.text;
       }
 
-      // Add file if selected
       if (_selectedImage != null) {
-        var imageFile = await http.MultipartFile.fromPath(
+        final imageFile = await http.MultipartFile.fromPath(
           'pictoFile',
           _selectedImage!.path,
           filename: path.basename(_selectedImage!.path),
@@ -217,9 +207,8 @@ class _ManageCitiesState extends State<ManageCities> {
         request.files.add(imageFile);
       }
 
-      // Send request
-      var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
         if (mounted) {
@@ -234,13 +223,16 @@ class _ManageCitiesState extends State<ManageCities> {
           );
         }
       } else {
-        throw Exception('Failed to update city: ${response.body}');
+        throw Exception(
+          'Échec de la mise à jour de la ville: ${response.body}',
+        );
       }
     } catch (e) {
+      print('Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
       }
     }
   }

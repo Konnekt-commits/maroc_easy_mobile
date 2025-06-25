@@ -372,7 +372,7 @@ class _ManageDiscoveriesState extends State<ManageDiscoveries> {
 
       // Create multipart request
       var request = http.MultipartRequest(
-        'PATCH',
+        'POST',
         Uri.parse('https://maroceasy.konnekt.fr/api/decouvertes/$discoveryId'),
       );
 
@@ -380,7 +380,6 @@ class _ManageDiscoveriesState extends State<ManageDiscoveries> {
       request.headers.addAll({
         'Authorization': 'Bearer $token',
         'accept': 'application/ld+json',
-        'X-HTTP-Method-Override': 'PUT',
       });
 
       // Add text fields

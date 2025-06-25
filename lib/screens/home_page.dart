@@ -1,21 +1,8 @@
-import 'dart:async';
-import 'dart:convert';
-
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:http/http.dart' as http;
-import 'package:latlong2/latlong.dart';
 import 'package:maroceasy/screens/admin_page.dart';
 import 'package:maroceasy/screens/favorites_page.dart';
 import 'package:maroceasy/screens/home_content.dart';
 import 'package:maroceasy/screens/profile_page.dart';
-import 'package:maroceasy/widgets/CategoryIconMapper.dart';
-import 'package:maroceasy/widgets/range_price.dart';
-import 'package:url_launcher/url_launcher.dart';
-import '../widgets/property_card.dart';
-import 'property_detail_page.dart';
-import '../widgets/month_destination.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -34,8 +21,8 @@ class _HomePageState extends State<HomePage> {
     // Initialize screens
     _screens.addAll([
       HomeContent(), // Main explore screen
-      FavoritesPage(), // You'll need to create this
-      AdminPage(), // You'll need to create this
+      // FavoritesPage(), // You'll need to create this
+      // AdminPage(), // You'll need to create this
       ProfilePage(), // We already created this
     ]);
     super.initState();
@@ -57,14 +44,14 @@ class _HomePageState extends State<HomePage> {
         unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Explorer'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite_border),
-            label: 'Favoris',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.admin_panel_settings_outlined),
-            label: 'Administration',
-          ),
+          // BottomNavigationBarItem(
+          //   icon: Icon(Icons.favorite_border),
+          //   label: 'Favoris',
+          // ),
+          // BottomNavigationBarItem(
+          //   icon: Icon(Icons.admin_panel_settings_outlined),
+          //   label: 'Administration',
+          // ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             label: 'Profil',

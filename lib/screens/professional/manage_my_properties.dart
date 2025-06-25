@@ -4,6 +4,8 @@ import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:maroceasy/widgets/category_form_type.dart';
+import 'package:maroceasy/widgets/loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as latlong;
@@ -16,6 +18,46 @@ class CustomMarker {
   final bool draggable;
 
   CustomMarker({required this.position, this.draggable = false});
+}
+
+class CategoryFormType {
+  static const String LOGEMENT = 'LOGEMENT';
+  static const String SANTE = 'SANTE';
+  static const String RESTAURANT = 'RESTAURANT';
+  static const String VOITURE = 'VOITURE';
+  static const String VOYAGE = 'VOYAGE';
+  static const String SHOPPING = 'SHOPPING';
+  static const String DEFAULT = 'DEFAULT';
+
+  static String getFormTypeForCategory(
+    int categoryId,
+    List<dynamic> categories,
+  ) {
+    final category = categories.firstWhere(
+      (cat) => cat['id'] == categoryId,
+      orElse: () => null,
+    );
+
+    if (category != null) {
+      switch (category['nom']) {
+        case 'Logement':
+          return LOGEMENT;
+        case 'Santé':
+          return SANTE;
+        case 'Restaurant':
+          return RESTAURANT;
+        case 'Voiture':
+          return VOITURE;
+        case 'Voyage':
+          return VOYAGE;
+        case 'Shopping':
+          return SHOPPING;
+        default:
+          return DEFAULT;
+      }
+    }
+    return DEFAULT;
+  }
 }
 
 class ManageMyProperties extends StatefulWidget {
@@ -35,6 +77,132 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
   bool _isEditingProperty = false;
   int? _editingPropertyId;
   double _formHeight = 0;
+  // Variables pour le mode concessionnaire
+  bool _isConcessionnaire = false;
+  final TextEditingController _nomConcessionnaireController =
+      TextEditingController();
+  final TextEditingController _minPriceController = TextEditingController();
+  final TextEditingController _maxPriceController = TextEditingController();
+  final TextEditingController _nbVehiculesController = TextEditingController();
+
+  // Listes pour les concessionnaires
+  final List<String> _availableVehicleTypes = [
+    'Berline',
+    'SUV',
+    'Coupé',
+    'Cabriolet',
+    'Break',
+    'Monospace',
+    '4x4',
+    'Utilitaire',
+    'Citadine',
+    'Sportive',
+    'Luxe',
+  ];
+
+  final List<String> _availableCarBrands = [
+    'Audi',
+    'BMW',
+    'Citroën',
+    'Dacia',
+    'Fiat',
+    'Ford',
+    'Honda',
+    'Hyundai',
+    'Kia',
+    'Mercedes',
+    'Nissan',
+    'Opel',
+    'Peugeot',
+    'Renault',
+    'Seat',
+    'Skoda',
+    'Toyota',
+    'Volkswagen',
+    'Volvo',
+  ];
+
+  final List<String> _availableDealerServices = [
+    'Financement',
+    'Garantie',
+    'Entretien',
+    'Réparation',
+    'Reprise',
+    'Location',
+    'Essai',
+    'Livraison',
+    'Service après-vente',
+    'Personnalisation',
+    'Assurance',
+  ];
+
+  final List<String> _availableTravelAmenities = [
+    'Guide touristique',
+    'Transport inclus',
+    'Hébergement inclus',
+    'Activités organisées',
+    'Assurance voyage',
+    'Repas inclus',
+    'Excursions',
+    'Billets d\'avion inclus',
+    'Service de réservation',
+    'Wi-Fi gratuit',
+    'Service de traduction',
+    'Support 24/7',
+  ];
+
+  final List<String> _availableShoppingAmenities = [
+    'Supermarché',
+    'Boutique de vêtements',
+    'Magasin d\'électronique',
+    'Librairie',
+    'Centre commercial',
+    'Magasin de sport',
+    'Bijouterie',
+    'Magasin de meubles',
+    'Pharmacie',
+    'Magasin de jouets',
+    'Parking gratuit',
+    'Wi-Fi gratuit',
+    'Accessibilité handicapés',
+    'Service de livraison',
+    'Réservation en ligne',
+    'Promotions et réductions',
+    'Paiement sans contact',
+    'Espace enfants',
+    'Service après-vente',
+    'Retours et échanges faciles',
+    'Assistance clientèle',
+  ];
+  final List<String> _availableRestaurantAmenities = [
+    'Cuisine marocaine',
+    'Cuisine italienne',
+    'Cuisine française',
+    'Cuisine asiatique',
+    'Cuisine végétarienne',
+    'Cuisine sans gluten',
+    'Menu enfant',
+    'Menu à emporter',
+    'Livraison à domicile',
+    'Réservation en ligne',
+    'Buffet',
+    'Service à table',
+    'Wi-Fi gratuit',
+    'Parking gratuit',
+    'Accessibilité handicapés',
+    'Espace enfants',
+    'Terrasse',
+    'Salle privée',
+    'Musique live',
+    'Paiement sans contact',
+    'Service après-vente',
+  ];
+  List<String> _selectedShoppingAmenities = [];
+  List<String> _selectedRestaurantAmenities = [];
+
+  List<String> _selectedVehicleTypes = [];
+  List<String> _selectedCarBrands = [];
+  List<String> _selectedDealerServices = [];
 
   // Replace these variables
   MapController? _mapController = MapController();
@@ -60,6 +228,56 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
   int? _selectedCityId;
   int? _selectedCategoryId;
   List<String> _selectedAmenities = [];
+
+  // Controllers pour les voitures
+  final TextEditingController _marqueController = TextEditingController();
+  final TextEditingController _modeleController = TextEditingController();
+  final TextEditingController _anneeController = TextEditingController();
+  final TextEditingController _kilometrageController = TextEditingController();
+
+  // Options pour les voitures
+  final List<String> _carburantOptions = [
+    'Essence',
+    'Diesel',
+    'Hybride',
+    'Électrique',
+    'GPL',
+  ];
+
+  final List<String> _transmissionOptions = [
+    'Manuelle',
+    'Automatique',
+    'Semi-automatique',
+  ];
+
+  // Sélections pour les voitures
+  String? _selectedCarburant;
+  String? _selectedTransmission;
+  List<String> _selectedCarEquipements = [];
+
+  // Map pour stocker les attributs de voiture
+  Map<String, String> _carAttributes = {};
+
+  // Équipements disponibles pour les voitures
+  final List<String> _availableCarEquipements = [
+    'Climatisation',
+    'GPS',
+    'Bluetooth',
+    'Caméra de recul',
+    'Régulateur de vitesse',
+    'Sièges chauffants',
+    'Toit ouvrant',
+    'Jantes alliage',
+    'Airbags',
+    'ABS',
+    'ESP',
+    'Aide au stationnement',
+    'Vitres électriques',
+    'Verrouillage centralisé',
+    'Radio',
+    'USB',
+    'Prise 12V',
+  ];
 
   // Available amenities
   final List<String> _availableAmenities = [
@@ -99,6 +317,101 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
     _latitudeController.dispose();
     _longitudeController.dispose();
     super.dispose();
+  }
+
+  String _currentFormType = CategoryFormType.DEFAULT;
+  List<String> _selectedLanguages = [];
+  List<String> _selectedServices = [];
+  List<String> _selectedPaymentMethods = [];
+  Map<String, String> _businessHours = {
+    'lundi': '',
+    'mardi': '',
+    'mercredi': '',
+    'jeudi': '',
+    'vendredi': '',
+    'samedi': '',
+    'dimanche': '',
+  };
+
+  // Available options for different fields
+  final List<String> _availableLanguages = [
+    'Français',
+    'Anglais',
+    'Arabe',
+    'Espagnol',
+    'Allemand',
+  ];
+
+  final List<String> _availableServices = [
+    'Rendez-vous en ligne',
+    'Téléconsultation',
+    'Dossier médical numérique',
+    'Urgences',
+    'Consultation à domicile',
+  ];
+
+  final List<String> _availablePaymentMethods = [
+    'Espèces',
+    'Carte bancaire',
+    'Chèque',
+    'Virement bancaire',
+    'Mobile payment',
+  ];
+
+  // Helper method to update car attributes
+  void _updateCarAttribute(String key, String value) {
+    setState(() {
+      _carAttributes[key] = value;
+    });
+  }
+
+  // Helper method to extract car attributes from comodites
+  Map<String, String> _extractCarAttributes(Map<String, dynamic> property) {
+    final result = <String, String>{};
+
+    if (property['comodites'] != null && property['comodites'] is List) {
+      for (final item in property['comodites']) {
+        if (item is String && item.contains(':')) {
+          final parts = item.split(':');
+          if (parts.length == 2) {
+            result[parts[0].trim()] = parts[1].trim();
+          }
+        }
+      }
+    }
+
+    return result;
+  }
+
+  // Update the _onCategoryChanged method
+  void _onCategoryChanged(int? categoryId) {
+    setState(() {
+      _selectedCategoryId = categoryId;
+      if (categoryId != null) {
+        _currentFormType = CategoryFormType.getFormTypeForCategory(
+          categoryId,
+          _categories,
+        );
+
+        // Reset specialized fields when changing category type
+        if (_currentFormType == CategoryFormType.SANTE ||
+            _currentFormType == CategoryFormType.RESTAURANT ||
+            _currentFormType == CategoryFormType.SHOPPING) {
+          _selectedLanguages = [];
+          _selectedServices = [];
+          _selectedPaymentMethods = [];
+          _businessHours = {
+            'lundi': '09:00-18:00',
+            'mardi': '09:00-18:00',
+            'mercredi': '09:00-18:00',
+            'jeudi': '09:00-18:00',
+            'vendredi': '09:00-18:00',
+            'samedi': '09:00-13:00',
+            'dimanche': 'Fermé',
+          };
+        }
+      }
+    });
   }
 
   Future<void> _getCurrentLocation() async {
@@ -212,6 +525,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
         if (mounted) {
           setState(() {
             _properties = data['hydra:member'];
+            print('Fetched properties: ${_properties.length}');
             _isLoading = false;
           });
         }
@@ -292,6 +606,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
         if (mounted) {
           setState(() {
             _categories = data['hydra:member'];
+            _onCategoryChanged(_categories.first['id']);
           });
         }
       } else if (response.statusCode == 401) {
@@ -305,6 +620,45 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
           context,
         ).showSnackBar(SnackBar(content: Text('Error loading categories: $e')));
       }
+    }
+  }
+
+  TimeOfDay _parseTimeString(String timeRange, {required bool isOpeningTime}) {
+    if (timeRange == 'Fermé') {
+      return TimeOfDay(hour: 9, minute: 0); // Default time
+    }
+
+    try {
+      final parts = timeRange.split('-');
+      final timeStr = isOpeningTime ? parts[0].trim() : parts[1].trim();
+      final timeParts = timeStr.split(':');
+      return TimeOfDay(
+        hour: int.parse(timeParts[0]),
+        minute: int.parse(timeParts[1]),
+      );
+    } catch (e) {
+      // Return default time if parsing fails
+      return TimeOfDay(hour: isOpeningTime ? 9 : 18, minute: 0);
+    }
+  }
+
+  // Helper method to get opening time from time range string
+  String _getOpenTimeFromString(String timeRange) {
+    if (timeRange == 'Fermé') return 'Fermé';
+    try {
+      return timeRange.split('-')[0].trim();
+    } catch (e) {
+      return '09:00';
+    }
+  }
+
+  // Helper method to get closing time from time range string
+  String _getCloseTimeFromString(String timeRange) {
+    if (timeRange == 'Fermé') return 'Fermé';
+    try {
+      return timeRange.split('-')[1].trim();
+    } catch (e) {
+      return '18:00';
     }
   }
 
@@ -344,6 +698,14 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
         _selectedCityId = null;
         _selectedCategoryId = null;
         _selectedAmenities = [];
+        _marqueController.clear();
+        _modeleController.clear();
+        _anneeController.clear();
+        _kilometrageController.clear();
+        _selectedCarburant = null;
+        _selectedTransmission = null;
+        _selectedCarEquipements = [];
+        _carAttributes = {};
       }
     });
   }
@@ -593,7 +955,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
         }
       }
 
-      final Map<String, dynamic> propertyData = {
+      Map<String, dynamic> requestBody = {
         'nom': _nameController.text,
         'email': _emailController.text,
         'telephone': _phoneController.text,
@@ -602,19 +964,75 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
         'descriptionLongue': _descriptionController.text,
         'category': '/api/categories/$_selectedCategoryId',
         'ville': '/api/villes/$_selectedCityId',
-        'user': '/api/users/$userId',
-        'comodites': _selectedAmenities,
+        'latitude': double.parse(_latitudeController.text),
+        'longitude': double.parse(_longitudeController.text),
+        'prix': double.parse(_priceController.text),
+        'user': '/api/users/${userId}',
       };
 
-      // Add optional numeric fields if they're not empty
-      if (_priceController.text.isNotEmpty) {
-        propertyData['prix'] = double.parse(_priceController.text);
-      }
-      if (_latitudeController.text.isNotEmpty) {
-        propertyData['latitude'] = double.parse(_latitudeController.text);
-      }
-      if (_longitudeController.text.isNotEmpty) {
-        propertyData['longitude'] = double.parse(_longitudeController.text);
+      // Add category-specific fields
+      if (_currentFormType == CategoryFormType.LOGEMENT ||
+          _currentFormType == CategoryFormType.VOYAGE) {
+        requestBody['comodites'] = _selectedAmenities;
+      } else if (_currentFormType == CategoryFormType.SANTE) {
+        requestBody['langues'] = _selectedLanguages;
+        requestBody['services'] = _selectedServices;
+        requestBody['moyensPaiement'] = _selectedPaymentMethods;
+        requestBody['horaires'] = _businessHours;
+      } else if (_currentFormType == CategoryFormType.SHOPPING ||
+          _currentFormType == CategoryFormType.RESTAURANT) {
+        requestBody['comodites'] = _selectedShoppingAmenities;
+        requestBody['horaires'] = _businessHours;
+      } else if (_currentFormType == CategoryFormType.VOITURE) {
+        if (_isConcessionnaire) {
+          // Format concessionnaire data for API
+          final List<String> concessionnaireComodites = [];
+
+          // Ajouter les informations du concessionnaire
+          concessionnaireComodites.add(
+            'concessionnaire:nom:${_nomConcessionnaireController.text}',
+          );
+          concessionnaireComodites.add(
+            'concessionnaire:nbVehicules:${_nbVehiculesController.text}',
+          );
+          concessionnaireComodites.add(
+            'concessionnaire:minPrice:${_minPriceController.text}',
+          );
+          concessionnaireComodites.add(
+            'concessionnaire:maxPrice:${_maxPriceController.text}',
+          );
+
+          // Ajouter les types de véhicules
+          for (final type in _selectedVehicleTypes) {
+            concessionnaireComodites.add('vehicleType:$type');
+          }
+
+          // Ajouter les marques
+          for (final brand in _selectedCarBrands) {
+            concessionnaireComodites.add('carBrand:$brand');
+          }
+
+          // Ajouter les services
+          for (final service in _selectedDealerServices) {
+            concessionnaireComodites.add('dealerService:$service');
+          }
+
+          requestBody['comodites'] = concessionnaireComodites;
+          requestBody['services'] = _selectedDealerServices;
+        } else {
+          // Store car attributes in comodites as "key:value" pairs
+          final carComodites = <String>[];
+          _carAttributes.forEach((key, value) {
+            if (value.isNotEmpty) {
+              carComodites.add('$key:$value');
+            }
+          });
+
+          // Add car-specific fields
+          requestBody['comodites'] = carComodites;
+          requestBody['services'] =
+              _selectedCarEquipements; // Store equipments in services
+        }
       }
 
       final response = await http.post(
@@ -623,7 +1041,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
-        body: json.encode(propertyData),
+        body: json.encode(requestBody),
       );
 
       if (response.statusCode == 201) {
@@ -680,7 +1098,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
         }
       }
 
-      final Map<String, dynamic> propertyData = {
+      Map<String, dynamic> requestBody = {
         'nom': _nameController.text,
         'email': _emailController.text,
         'telephone': _phoneController.text,
@@ -689,19 +1107,75 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
         'descriptionLongue': _descriptionController.text,
         'category': '/api/categories/$_selectedCategoryId',
         'ville': '/api/villes/$_selectedCityId',
-        'user': '/api/users/$userId',
-        'comodites': _selectedAmenities,
+        'latitude': double.parse(_latitudeController.text),
+        'longitude': double.parse(_longitudeController.text),
+        'prix': double.parse(_priceController.text),
+        'user': '/api/users/${userId}',
       };
 
-      // Add optional numeric fields if they're not empty
-      if (_priceController.text.isNotEmpty) {
-        propertyData['prix'] = double.parse(_priceController.text);
-      }
-      if (_latitudeController.text.isNotEmpty) {
-        propertyData['latitude'] = double.parse(_latitudeController.text);
-      }
-      if (_longitudeController.text.isNotEmpty) {
-        propertyData['longitude'] = double.parse(_longitudeController.text);
+      // Add category-specific fields
+      if (_currentFormType == CategoryFormType.LOGEMENT ||
+          _currentFormType == CategoryFormType.VOYAGE) {
+        requestBody['comodites'] = _selectedAmenities;
+      } else if (_currentFormType == CategoryFormType.SANTE) {
+        requestBody['langues'] = _selectedLanguages;
+        requestBody['services'] = _selectedServices;
+        requestBody['moyensPaiement'] = _selectedPaymentMethods;
+        requestBody['horaires'] = _businessHours;
+      } else if (_currentFormType == CategoryFormType.SHOPPING ||
+          _currentFormType == CategoryFormType.RESTAURANT) {
+        requestBody['comodites'] = _selectedShoppingAmenities;
+        requestBody['horaires'] = _businessHours;
+      } else if (_currentFormType == CategoryFormType.VOITURE) {
+        if (_isConcessionnaire) {
+          // Format concessionnaire data for API
+          final List<String> concessionnaireComodites = [];
+
+          // Ajouter les informations du concessionnaire
+          concessionnaireComodites.add(
+            'concessionnaire:nom:${_nomConcessionnaireController.text}',
+          );
+          concessionnaireComodites.add(
+            'concessionnaire:nbVehicules:${_nbVehiculesController.text}',
+          );
+          concessionnaireComodites.add(
+            'concessionnaire:minPrice:${_minPriceController.text}',
+          );
+          concessionnaireComodites.add(
+            'concessionnaire:maxPrice:${_maxPriceController.text}',
+          );
+
+          // Ajouter les types de véhicules
+          for (final type in _selectedVehicleTypes) {
+            concessionnaireComodites.add('vehicleType:$type');
+          }
+
+          // Ajouter les marques
+          for (final brand in _selectedCarBrands) {
+            concessionnaireComodites.add('carBrand:$brand');
+          }
+
+          // Ajouter les services
+          for (final service in _selectedDealerServices) {
+            concessionnaireComodites.add('dealerService:$service');
+          }
+
+          requestBody['comodites'] = concessionnaireComodites;
+          requestBody['services'] = _selectedDealerServices;
+        } else {
+          // Store car attributes in comodites as "key:value" pairs
+          final carComodites = <String>[];
+          _carAttributes.forEach((key, value) {
+            if (value.isNotEmpty) {
+              carComodites.add('$key:$value');
+            }
+          });
+
+          // Add car-specific fields
+          requestBody['comodites'] = carComodites;
+          requestBody['services'] =
+              _selectedCarEquipements; // Store equipments in services
+        }
       }
 
       final response = await http.patch(
@@ -711,7 +1185,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
           'Content-Type':
               'application/merge-patch+json', // Changed from 'application/json'
         },
-        body: json.encode(propertyData),
+        body: json.encode(requestBody),
       );
 
       if (response.statusCode == 200) {
@@ -812,30 +1286,6 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
     );
   }
 
-  String _getCityName(String cityIri) {
-    final cityId = int.tryParse(cityIri.split('/').last);
-    if (cityId == null) return 'Ville inconnue';
-
-    final city = _cities.firstWhere(
-      (city) => city['id'] == cityId,
-      orElse: () => {'nom': 'Ville inconnue'},
-    );
-
-    return city['nom'];
-  }
-
-  String _getCategoryName(String categoryIri) {
-    final categoryId = int.tryParse(categoryIri.split('/').last);
-    if (categoryId == null) return 'Catégorie inconnue';
-
-    final category = _categories.firstWhere(
-      (category) => category['id'] == categoryId,
-      orElse: () => {'nom': 'Catégorie inconnue'},
-    );
-
-    return category['nom'];
-  }
-
   List<dynamic> get _filteredProperties {
     if (_searchQuery.isEmpty) {
       return _properties;
@@ -902,7 +1352,12 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
               Expanded(
                 child:
                     _isLoading
-                        ? const Center(child: CircularProgressIndicator())
+                        ? Center(
+                          child: ListView.builder(
+                            itemCount: 4,
+                            itemBuilder: (context, index) => LoaderAnnonce(),
+                          ),
+                        )
                         : _filteredProperties.isEmpty
                         ? const Center(child: Text('Aucune propriété trouvée'))
                         : ListView.builder(
@@ -1004,22 +1459,9 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     const SizedBox(height: 8),
-                                    if (property['comodites'] != null &&
-                                        (property['comodites'] as List)
-                                            .isNotEmpty)
-                                      Wrap(
-                                        spacing: 8,
-                                        children:
-                                            (property['comodites'] as List)
-                                                .map(
-                                                  (amenity) => Chip(
-                                                    label: Text(amenity),
-                                                    backgroundColor:
-                                                        Colors.grey[200],
-                                                  ),
-                                                )
-                                                .toList(),
-                                      ),
+
+                                    // Display category-specific information
+                                    _buildCategorySpecificInfo(property),
                                     const SizedBox(height: 16),
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.end,
@@ -1211,6 +1653,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                                   onChanged: (value) {
                                     setState(() {
                                       _selectedCategoryId = value;
+                                      _onCategoryChanged(_selectedCategoryId);
                                     });
                                   },
                                 ),
@@ -1378,6 +1821,11 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                           ),
                           const SizedBox(height: 16),
 
+                          // Add the dynamic category-specific fields
+                          _buildCategorySpecificFields(),
+
+                          /*const SizedBox(height: 16),
+
                           // Amenities selection
                           Text(
                             'Commodités',
@@ -1412,8 +1860,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                                     checkmarkColor: Colors.pink,
                                   );
                                 }).toList(),
-                          ),
-
+                          ),*/
                           const SizedBox(height: 24),
 
                           // Submit button
@@ -1598,6 +2045,1699 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildCategorySpecificFields() {
+    switch (_currentFormType) {
+      case CategoryFormType.SANTE:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            const Text(
+              'Informations spécifiques pour professionnel de santé',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+
+            // Languages
+            const Text('Langues parlées'),
+            Wrap(
+              spacing: 8,
+              children:
+                  _availableLanguages.map((language) {
+                    return FilterChip(
+                      label: Text(language),
+                      selected: _selectedLanguages.contains(language),
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedLanguages.add(language);
+                          } else {
+                            _selectedLanguages.remove(language);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+            ),
+            const SizedBox(height: 16),
+
+            // Services
+            const Text('Services proposés'),
+            Wrap(
+              spacing: 8,
+              children:
+                  _availableServices.map((service) {
+                    return FilterChip(
+                      label: Text(service),
+                      selected: _selectedServices.contains(service),
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedServices.add(service);
+                          } else {
+                            _selectedServices.remove(service);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+            ),
+            const SizedBox(height: 16),
+
+            // Payment methods
+            const Text('Moyens de paiement acceptés'),
+            Wrap(
+              spacing: 8,
+              children:
+                  _availablePaymentMethods.map((method) {
+                    return FilterChip(
+                      label: Text(method),
+                      selected: _selectedPaymentMethods.contains(method),
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedPaymentMethods.add(method);
+                          } else {
+                            _selectedPaymentMethods.remove(method);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+            ),
+            const SizedBox(height: 16),
+
+            // Business hours
+            const Text('Horaires d\'ouverture'),
+            const SizedBox(height: 8),
+
+            // For each day of the week
+            ..._businessHours.entries.map((entry) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 100,
+                      child: Text(
+                        entry.key.substring(0, 1).toUpperCase() +
+                            entry.key.substring(1),
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () async {
+                                if (entry.value == 'Fermé') return;
+
+                                final TimeOfDay? openTime =
+                                    await showTimePicker(
+                                      context: context,
+                                      initialTime: _parseTimeString(
+                                        entry.value,
+                                        isOpeningTime: true,
+                                      ),
+                                      builder: (context, child) {
+                                        return Theme(
+                                          data: Theme.of(context).copyWith(
+                                            colorScheme: ColorScheme.light(
+                                              primary: Colors.pink,
+                                            ),
+                                          ),
+                                          child: child!,
+                                        );
+                                      },
+                                    );
+
+                                if (openTime != null) {
+                                  setState(() {
+                                    final closeTimeStr =
+                                        _getCloseTimeFromString(entry.value);
+                                    final openTimeStr =
+                                        '${openTime.hour.toString().padLeft(2, '0')}:${openTime.minute.toString().padLeft(2, '0')}';
+                                    _businessHours[entry.key] =
+                                        '$openTimeStr-$closeTimeStr';
+                                  });
+                                }
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  entry.value == 'Fermé'
+                                      ? 'Fermé'
+                                      : _getOpenTimeFromString(entry.value),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Text('-'),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () async {
+                                if (entry.value == 'Fermé') return;
+
+                                final TimeOfDay? closeTime =
+                                    await showTimePicker(
+                                      context: context,
+                                      initialTime: _parseTimeString(
+                                        entry.value,
+                                        isOpeningTime: false,
+                                      ),
+                                      builder: (context, child) {
+                                        return Theme(
+                                          data: Theme.of(context).copyWith(
+                                            colorScheme: ColorScheme.light(
+                                              primary: Colors.pink,
+                                            ),
+                                          ),
+                                          child: child!,
+                                        );
+                                      },
+                                    );
+
+                                if (closeTime != null) {
+                                  setState(() {
+                                    final openTimeStr = _getOpenTimeFromString(
+                                      entry.value,
+                                    );
+                                    final closeTimeStr =
+                                        '${closeTime.hour.toString().padLeft(2, '0')}:${closeTime.minute.toString().padLeft(2, '0')}';
+                                    _businessHours[entry.key] =
+                                        '$openTimeStr-$closeTimeStr';
+                                  });
+                                }
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  entry.value == 'Fermé'
+                                      ? 'Fermé'
+                                      : _getCloseTimeFromString(entry.value),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          IconButton(
+                            icon: Icon(
+                              entry.value == 'Fermé'
+                                  ? Icons.lock_open
+                                  : Icons.lock,
+                              color:
+                                  entry.value == 'Fermé'
+                                      ? Colors.green
+                                      : Colors.red,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                if (entry.value == 'Fermé') {
+                                  _businessHours[entry.key] = '09:00-18:00';
+                                } else {
+                                  _businessHours[entry.key] = 'Fermé';
+                                }
+                              });
+                            },
+                            tooltip:
+                                entry.value == 'Fermé' ? 'Ouvrir' : 'Fermer',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        );
+
+      case CategoryFormType.LOGEMENT:
+        // Return existing amenities section for lodging
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            // Amenities selection
+            Text(
+              'Commodités',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children:
+                  _availableAmenities.map((amenity) {
+                    final isSelected = _selectedAmenities.contains(amenity);
+                    return FilterChip(
+                      label: Text(amenity),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedAmenities.add(amenity);
+                          } else {
+                            _selectedAmenities.remove(amenity);
+                          }
+                        });
+                      },
+                      backgroundColor: Colors.grey[200],
+                      selectedColor: Colors.pink[100],
+                      checkmarkColor: Colors.pink,
+                    );
+                  }).toList(),
+            ),
+          ],
+        );
+
+      case CategoryFormType.VOYAGE:
+        // Return existing amenities section for lodging
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            // Amenities selection
+            Text(
+              'Commodités',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children:
+                  _availableTravelAmenities.map((amenity) {
+                    final isSelected = _selectedAmenities.contains(amenity);
+                    return FilterChip(
+                      label: Text(amenity),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedAmenities.add(amenity);
+                          } else {
+                            _selectedAmenities.remove(amenity);
+                          }
+                        });
+                      },
+                      backgroundColor: Colors.grey[200],
+                      selectedColor: Colors.pink[100],
+                      checkmarkColor: Colors.pink,
+                    );
+                  }).toList(),
+            ),
+          ],
+        );
+
+      case CategoryFormType.VOITURE:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            const Text(
+              'Informations spécifiques pour véhicule',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+
+            // Option pour choisir entre annonce individuelle ou concessionnaire
+            Row(
+              children: [
+                Expanded(
+                  child: RadioListTile<bool>(
+                    title: const Text('Véhicule individuel'),
+                    value: false,
+                    groupValue: _isConcessionnaire,
+                    onChanged: (value) {
+                      setState(() {
+                        _isConcessionnaire = value!;
+                      });
+                    },
+                    activeColor: Colors.pink,
+                  ),
+                ),
+                Expanded(
+                  child: RadioListTile<bool>(
+                    title: const Text('Concessionnaire'),
+                    value: true,
+                    groupValue: _isConcessionnaire,
+                    onChanged: (value) {
+                      setState(() {
+                        _isConcessionnaire = value!;
+                      });
+                    },
+                    activeColor: Colors.pink,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Afficher les champs appropriés selon le type d'annonce
+            if (_isConcessionnaire)
+              _buildConcessionnaireFields()
+            else
+              _buildVehiculeIndividuelFields(),
+          ],
+        );
+      case CategoryFormType.SHOPPING:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            const Text(
+              'Informations spécifiques pour shopping',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+
+            // Shopping amenities selection
+            const Text('Commodités pour shopping'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children:
+                  _availableShoppingAmenities.map((amenity) {
+                    final isSelected = _selectedShoppingAmenities.contains(
+                      amenity,
+                    );
+                    return FilterChip(
+                      label: Text(amenity),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedShoppingAmenities.add(amenity);
+                          } else {
+                            _selectedShoppingAmenities.remove(amenity);
+                          }
+                        });
+                      },
+                      backgroundColor: Colors.grey[200],
+                      selectedColor: Colors.pink[100],
+                      checkmarkColor: Colors.pink,
+                    );
+                  }).toList(),
+            ),
+            const SizedBox(height: 16),
+
+            // Business hours
+            const Text('Horaires d\'ouverture'),
+            const SizedBox(height: 8),
+
+            // For each day of the week
+            ..._businessHours.entries.map((entry) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 100,
+                      child: Text(
+                        entry.key.substring(0, 1).toUpperCase() +
+                            entry.key.substring(1),
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () async {
+                                if (entry.value == 'Fermé') return;
+
+                                final TimeOfDay? openTime =
+                                    await showTimePicker(
+                                      context: context,
+                                      initialTime: _parseTimeString(
+                                        entry.value,
+                                        isOpeningTime: true,
+                                      ),
+                                      builder: (context, child) {
+                                        return Theme(
+                                          data: Theme.of(context).copyWith(
+                                            colorScheme: ColorScheme.light(
+                                              primary: Colors.pink,
+                                            ),
+                                          ),
+                                          child: child!,
+                                        );
+                                      },
+                                    );
+
+                                if (openTime != null) {
+                                  setState(() {
+                                    final closeTimeStr =
+                                        _getCloseTimeFromString(entry.value);
+                                    final openTimeStr =
+                                        '${openTime.hour.toString().padLeft(2, '0')}:${openTime.minute.toString().padLeft(2, '0')}';
+                                    _businessHours[entry.key] =
+                                        '$openTimeStr-$closeTimeStr';
+                                  });
+                                }
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  entry.value == 'Fermé'
+                                      ? 'Fermé'
+                                      : _getOpenTimeFromString(entry.value),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Text('-'),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () async {
+                                if (entry.value == 'Fermé') return;
+
+                                final TimeOfDay? closeTime =
+                                    await showTimePicker(
+                                      context: context,
+                                      initialTime: _parseTimeString(
+                                        entry.value,
+                                        isOpeningTime: false,
+                                      ),
+                                      builder: (context, child) {
+                                        return Theme(
+                                          data: Theme.of(context).copyWith(
+                                            colorScheme: ColorScheme.light(
+                                              primary: Colors.pink,
+                                            ),
+                                          ),
+                                          child: child!,
+                                        );
+                                      },
+                                    );
+
+                                if (closeTime != null) {
+                                  setState(() {
+                                    final openTimeStr = _getOpenTimeFromString(
+                                      entry.value,
+                                    );
+                                    final closeTimeStr =
+                                        '${closeTime.hour.toString().padLeft(2, '0')}:${closeTime.minute.toString().padLeft(2, '0')}';
+                                    _businessHours[entry.key] =
+                                        '$openTimeStr-$closeTimeStr';
+                                  });
+                                }
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  entry.value == 'Fermé'
+                                      ? 'Fermé'
+                                      : _getCloseTimeFromString(entry.value),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          IconButton(
+                            icon: Icon(
+                              entry.value == 'Fermé'
+                                  ? Icons.lock_open
+                                  : Icons.lock,
+                              color:
+                                  entry.value == 'Fermé'
+                                      ? Colors.green
+                                      : Colors.red,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                if (entry.value == 'Fermé') {
+                                  _businessHours[entry.key] = '09:00-18:00';
+                                } else {
+                                  _businessHours[entry.key] = 'Fermé';
+                                }
+                              });
+                            },
+                            tooltip:
+                                entry.value == 'Fermé' ? 'Ouvrir' : 'Fermer',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        );
+
+      case CategoryFormType.RESTAURANT:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            const Text(
+              'Informations spécifiques pour restaurant',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+
+            // Restaurant amenities selection
+            const Text('Commodités pour restaurant'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children:
+                  _availableRestaurantAmenities.map((amenity) {
+                    final isSelected = _selectedShoppingAmenities.contains(
+                      amenity,
+                    );
+                    return FilterChip(
+                      label: Text(amenity),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedShoppingAmenities.add(amenity);
+                          } else {
+                            _selectedShoppingAmenities.remove(amenity);
+                          }
+                        });
+                      },
+                      backgroundColor: Colors.grey[200],
+                      selectedColor: Colors.pink[100],
+                      checkmarkColor: Colors.pink,
+                    );
+                  }).toList(),
+            ),
+            const SizedBox(height: 16),
+
+            // Business hours
+            const Text('Horaires d\'ouverture'),
+            const SizedBox(height: 8),
+
+            // For each day of the week
+            ..._businessHours.entries.map((entry) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 100,
+                      child: Text(
+                        entry.key.substring(0, 1).toUpperCase() +
+                            entry.key.substring(1),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () async {
+                                if (entry.value == 'Fermé') return;
+
+                                final TimeOfDay? openTime =
+                                    await showTimePicker(
+                                      context: context,
+                                      initialTime: _parseTimeString(
+                                        entry.value,
+                                        isOpeningTime: true,
+                                      ),
+                                    );
+
+                                if (openTime != null) {
+                                  setState(() {
+                                    final closeTimeStr =
+                                        _getCloseTimeFromString(entry.value);
+                                    final openTimeStr =
+                                        '${openTime.hour.toString().padLeft(2, '0')}:${openTime.minute.toString().padLeft(2, '0')}';
+                                    _businessHours[entry.key] =
+                                        '$openTimeStr-$closeTimeStr';
+                                  });
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  entry.value == 'Fermé'
+                                      ? 'Fermé'
+                                      : _getOpenTimeFromString(entry.value),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('-'),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () async {
+                                if (entry.value == 'Fermé') return;
+
+                                final TimeOfDay? closeTime =
+                                    await showTimePicker(
+                                      context: context,
+                                      initialTime: _parseTimeString(
+                                        entry.value,
+                                        isOpeningTime: false,
+                                      ),
+                                    );
+
+                                if (closeTime != null) {
+                                  setState(() {
+                                    final openTimeStr = _getOpenTimeFromString(
+                                      entry.value,
+                                    );
+                                    final closeTimeStr =
+                                        '${closeTime.hour.toString().padLeft(2, '0')}:${closeTime.minute.toString().padLeft(2, '0')}';
+                                    _businessHours[entry.key] =
+                                        '$openTimeStr-$closeTimeStr';
+                                  });
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  entry.value == 'Fermé'
+                                      ? 'Fermé'
+                                      : _getCloseTimeFromString(entry.value),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: Icon(
+                              entry.value == 'Fermé'
+                                  ? Icons.lock_open
+                                  : Icons.lock,
+                              color:
+                                  entry.value == 'Fermé'
+                                      ? Colors.green
+                                      : Colors.red,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                if (entry.value == 'Fermé') {
+                                  _businessHours[entry.key] = '09:00-18:00';
+                                } else {
+                                  _businessHours[entry.key] = 'Fermé';
+                                }
+                              });
+                            },
+                            tooltip:
+                                entry.value == 'Fermé' ? 'Ouvrir' : 'Fermer',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        );
+
+      default:
+        return SizedBox(); // Empty widget for other categories
+    }
+  }
+
+  // Display information specific to lodging properties
+  Widget _buildLogementInfo(Map<String, dynamic> property) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (property['comodites'] != null &&
+            (property['comodites'] as List).isNotEmpty)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Commodités',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children:
+                    (property['comodites'] as List)
+                        .map(
+                          (amenity) => Chip(
+                            label: Text(amenity),
+                            backgroundColor: Colors.grey[200],
+                            labelStyle: const TextStyle(fontSize: 12),
+                          ),
+                        )
+                        .toList(),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  // Display information specific to healthcare properties
+  Widget _buildSanteInfo(Map<String, dynamic> property) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Languages
+        if (property['langues'] != null &&
+            (property['langues'] as List).isNotEmpty)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Langues parlées',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children:
+                    (property['langues'] as List)
+                        .map(
+                          (language) => Chip(
+                            label: Text(language),
+                            backgroundColor: Colors.blue[50],
+                            labelStyle: const TextStyle(fontSize: 12),
+                          ),
+                        )
+                        .toList(),
+              ),
+            ],
+          ),
+
+        const SizedBox(height: 8),
+
+        // Services
+        if (property['services'] != null &&
+            (property['services'] as List).isNotEmpty)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Services proposés',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children:
+                    (property['services'] as List)
+                        .map(
+                          (service) => Chip(
+                            label: Text(service),
+                            backgroundColor: Colors.green[50],
+                            labelStyle: const TextStyle(fontSize: 12),
+                          ),
+                        )
+                        .toList(),
+              ),
+            ],
+          ),
+
+        const SizedBox(height: 8),
+
+        // Payment methods
+        if (property['moyensPaiement'] != null &&
+            (property['moyensPaiement'] as List).isNotEmpty)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Moyens de paiement',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children:
+                    (property['moyensPaiement'] as List)
+                        .map(
+                          (method) => Chip(
+                            label: Text(method),
+                            backgroundColor: Colors.amber[50],
+                            labelStyle: const TextStyle(fontSize: 12),
+                          ),
+                        )
+                        .toList(),
+              ),
+            ],
+          ),
+
+        const SizedBox(height: 8),
+
+        // Business hours
+        if (property['horaires'] != null)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Horaires d\'ouverture',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              _buildBusinessHoursDisplay(property['horaires']),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildShoppingInfo(Map<String, dynamic> property) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Payment methods
+        if (property['comodites'] != null &&
+            (property['comodites'] as List).isNotEmpty)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Informations générales',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children:
+                    (property['comodites'] as List)
+                        .map(
+                          (method) => Chip(
+                            label: Text(method),
+                            backgroundColor: Colors.amber[50],
+                            labelStyle: const TextStyle(fontSize: 12),
+                          ),
+                        )
+                        .toList(),
+              ),
+            ],
+          ),
+
+        const SizedBox(height: 8),
+
+        // Business hours
+        if (property['horaires'] != null)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Horaires d\'ouverture',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              _buildBusinessHoursDisplay(property['horaires']),
+            ],
+          ),
+      ],
+    );
+  }
+
+  // Display information specific to restaurant properties
+  Widget _buildRestaurantInfo(Map<String, dynamic> property) {
+    // For now, similar to healthcare but can be customized later
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Cuisine types or specialties could go here
+        if (property['comodites'] != null &&
+            (property['comodites'] as List).isNotEmpty)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Informations générales',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children:
+                    (property['comodites'] as List)
+                        .map(
+                          (specialty) => Chip(
+                            label: Text(specialty),
+                            backgroundColor: Colors.orange[50],
+                            labelStyle: const TextStyle(fontSize: 12),
+                          ),
+                        )
+                        .toList(),
+              ),
+            ],
+          ),
+
+        const SizedBox(height: 8),
+
+        // Business hours
+        if (property['horaires'] != null)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Horaires d\'ouverture',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              _buildBusinessHoursDisplay(property['horaires']),
+            ],
+          ),
+      ],
+    );
+  }
+
+  // Default display for other property types
+  Widget _buildDefaultInfo(Map<String, dynamic> property) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (property['comodites'] != null &&
+            (property['comodites'] as List).isNotEmpty)
+          Wrap(
+            spacing: 8,
+            children:
+                (property['comodites'] as List)
+                    .map(
+                      (amenity) => Chip(
+                        label: Text(amenity),
+                        backgroundColor: Colors.grey[200],
+                      ),
+                    )
+                    .toList(),
+          ),
+      ],
+    );
+  }
+
+  // Helper method to display business hours
+  Widget _buildBusinessHoursDisplay(dynamic horaires) {
+    // Handle different formats of horaires (string or map)
+    if (horaires is String) {
+      return Text(horaires);
+    } else if (horaires is Map) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children:
+            horaires.entries.map<Widget>((entry) {
+              final day = entry.key.toString();
+              final hours = entry.value.toString();
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4.0),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 100,
+                      child: Text(
+                        day.substring(0, 1).toUpperCase() + day.substring(1),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Text(hours),
+                  ],
+                ),
+              );
+            }).toList(),
+      );
+    } else {
+      return const SizedBox.shrink();
+    }
+  }
+
+  // Method to display category-specific information
+  Widget _buildCategorySpecificInfo(Map<String, dynamic> property) {
+    // Determine the property type based on its category
+    final categoryType = CategoryFormType.getFormTypeForCategory(
+      property['category']?['id'],
+      _categories,
+    );
+
+    switch (categoryType) {
+      case CategoryFormType.LOGEMENT:
+        return _buildLogementInfo(property);
+      case CategoryFormType.SANTE:
+        return _buildSanteInfo(property);
+      case CategoryFormType.RESTAURANT:
+        return _buildRestaurantInfo(property);
+      case CategoryFormType.VOITURE:
+        return _buildVoitureInfo(property);
+      case CategoryFormType.SHOPPING:
+        return _buildShoppingInfo(property);
+      default:
+        return _buildDefaultInfo(property);
+    }
+  }
+
+  // Display information specific to car properties
+  Widget _buildVoitureInfo(Map<String, dynamic> property) {
+    final isConcessionnaire = _isPropertyConcessionnaire(property);
+
+    if (isConcessionnaire) {
+      return _buildConcessionnaireInfo(property);
+    } else {
+      final carAttributes = _extractCarAttributes(property);
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Car specs
+          Wrap(
+            spacing: 16,
+            runSpacing: 8,
+            children: [
+              if (carAttributes['marque'] != null &&
+                  carAttributes['modele'] != null)
+                _buildSpecItem(
+                  Icons.directions_car,
+                  '${carAttributes['marque']} ${carAttributes['modele']}',
+                  Colors.blue[50],
+                ),
+              if (carAttributes['annee'] != null)
+                _buildSpecItem(
+                  Icons.calendar_today,
+                  'Année: ${carAttributes['annee']}',
+                  Colors.green[50],
+                ),
+              if (carAttributes['kilometrage'] != null)
+                _buildSpecItem(
+                  Icons.speed,
+                  '${carAttributes['kilometrage']} km',
+                  Colors.amber[50],
+                ),
+              if (carAttributes['carburant'] != null)
+                _buildSpecItem(
+                  Icons.local_gas_station,
+                  carAttributes['carburant']!,
+                  Colors.red[50],
+                ),
+              if (carAttributes['transmission'] != null)
+                _buildSpecItem(
+                  Icons.settings,
+                  carAttributes['transmission']!,
+                  Colors.purple[50],
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Équipements (from services)
+          if (property['services'] != null &&
+              (property['services'] as List).isNotEmpty)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Équipements',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  children:
+                      (property['services'] as List)
+                          .map(
+                            (equipement) => Chip(
+                              label: Text(equipement),
+                              backgroundColor: Colors.blue[50],
+                              labelStyle: const TextStyle(fontSize: 12),
+                            ),
+                          )
+                          .toList(),
+                ),
+              ],
+            ),
+        ],
+      );
+    }
+  }
+
+  // Afficher les informations d'un concessionnaire
+  Widget _buildConcessionnaireInfo(Map<String, dynamic> property) {
+    // Extraire les informations du concessionnaire
+    final concessionnaireInfo = _extractConcessionnaireInfo(property);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Nom du concessionnaire
+        if (concessionnaireInfo['nom'] != null)
+          Text(
+            concessionnaireInfo['nom']!,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+        const SizedBox(height: 12),
+
+        // Nombre de véhicules
+        if (concessionnaireInfo['nbVehicules'] != null)
+          _buildSpecItem(
+            Icons.directions_car,
+            'Environ ${concessionnaireInfo['nbVehicules']} véhicules disponibles',
+            Colors.blue[50],
+          ),
+        const SizedBox(height: 12),
+
+        // Gamme de prix
+        if (concessionnaireInfo['minPrice'] != null &&
+            concessionnaireInfo['maxPrice'] != null)
+          _buildSpecItem(
+            Icons.euro,
+            'Prix: ${concessionnaireInfo['minPrice']}€ - ${concessionnaireInfo['maxPrice']}€',
+            Colors.green[50],
+          ),
+        const SizedBox(height: 16),
+
+        // Types de véhicules
+        if (concessionnaireInfo['vehicleTypes'] != null &&
+            concessionnaireInfo['vehicleTypes'].isNotEmpty)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Types de véhicules',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children:
+                    (concessionnaireInfo['vehicleTypes'] as List)
+                        .map(
+                          (type) => Chip(
+                            label: Text(type),
+                            backgroundColor: Colors.purple[50],
+                            labelStyle: const TextStyle(fontSize: 12),
+                          ),
+                        )
+                        .toList(),
+              ),
+            ],
+          ),
+        const SizedBox(height: 12),
+
+        // Marques disponibles
+        if (concessionnaireInfo['carBrands'] != null &&
+            concessionnaireInfo['carBrands'].isNotEmpty)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Marques disponibles',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children:
+                    (concessionnaireInfo['carBrands'] as List)
+                        .map(
+                          (brand) => Chip(
+                            label: Text(brand),
+                            backgroundColor: Colors.blue[50],
+                            labelStyle: const TextStyle(fontSize: 12),
+                          ),
+                        )
+                        .toList(),
+              ),
+            ],
+          ),
+        const SizedBox(height: 12),
+
+        // Services proposés
+        if (concessionnaireInfo['dealerServices'] != null &&
+            concessionnaireInfo['dealerServices'].isNotEmpty)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Services proposés',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children:
+                    (concessionnaireInfo['dealerServices'] as List)
+                        .map(
+                          (service) => Chip(
+                            label: Text(service),
+                            backgroundColor: Colors.amber[50],
+                            labelStyle: const TextStyle(fontSize: 12),
+                          ),
+                        )
+                        .toList(),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  // Vérifier si une propriété est un concessionnaire
+  bool _isPropertyConcessionnaire(Map<String, dynamic> property) {
+    if (property['comodites'] != null && property['comodites'] is List) {
+      return (property['comodites'] as List).any(
+        (item) => item is String && item.startsWith('concessionnaire:'),
+      );
+    }
+    return false;
+  }
+
+  // Extraire les informations du concessionnaire
+  Map<String, dynamic> _extractConcessionnaireInfo(
+    Map<String, dynamic> property,
+  ) {
+    final result = <String, dynamic>{};
+
+    if (property['comodites'] != null && property['comodites'] is List) {
+      for (final item in property['comodites']) {
+        if (item is String && item.startsWith('concessionnaire:')) {
+          final parts = item.split(':');
+          if (parts.length >= 3) {
+            result[parts[1]] = parts[2];
+          }
+        }
+      }
+
+      // Extraire les types de véhicules, marques et services
+      final vehicleTypes = <String>[];
+      final carBrands = <String>[];
+      final dealerServices = <String>[];
+
+      for (final item in property['comodites']) {
+        if (item is String) {
+          if (item.startsWith('vehicleType:')) {
+            vehicleTypes.add(item.substring('vehicleType:'.length));
+          } else if (item.startsWith('carBrand:')) {
+            carBrands.add(item.substring('carBrand:'.length));
+          } else if (item.startsWith('dealerService:')) {
+            dealerServices.add(item.substring('dealerService:'.length));
+          }
+        }
+      }
+
+      result['vehicleTypes'] = vehicleTypes;
+      result['carBrands'] = carBrands;
+      result['dealerServices'] = dealerServices;
+    }
+
+    return result;
+  }
+
+  // Champs pour un concessionnaire avec plusieurs voitures
+  Widget _buildConcessionnaireFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Nom du concessionnaire
+        TextField(
+          controller: _nomConcessionnaireController,
+          decoration: const InputDecoration(
+            labelText: 'Nom du concessionnaire',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Types de véhicules proposés
+        const Text(
+          'Types de véhicules proposés',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children:
+              _availableVehicleTypes.map((type) {
+                final isSelected = _selectedVehicleTypes.contains(type);
+                return FilterChip(
+                  label: Text(type),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    setState(() {
+                      if (selected) {
+                        _selectedVehicleTypes.add(type);
+                      } else {
+                        _selectedVehicleTypes.remove(type);
+                      }
+                    });
+                  },
+                  backgroundColor: Colors.grey[200],
+                  selectedColor: Colors.pink[100],
+                  checkmarkColor: Colors.pink,
+                );
+              }).toList(),
+        ),
+        const SizedBox(height: 16),
+
+        // Marques disponibles
+        const Text(
+          'Marques disponibles',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children:
+              _availableCarBrands.map((brand) {
+                final isSelected = _selectedCarBrands.contains(brand);
+                return FilterChip(
+                  label: Text(brand),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    setState(() {
+                      if (selected) {
+                        _selectedCarBrands.add(brand);
+                      } else {
+                        _selectedCarBrands.remove(brand);
+                      }
+                    });
+                  },
+                  backgroundColor: Colors.grey[200],
+                  selectedColor: Colors.pink[100],
+                  checkmarkColor: Colors.pink,
+                );
+              }).toList(),
+        ),
+        const SizedBox(height: 16),
+
+        // Services proposés
+        const Text(
+          'Services proposés',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children:
+              _availableDealerServices.map((service) {
+                final isSelected = _selectedDealerServices.contains(service);
+                return FilterChip(
+                  label: Text(service),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    setState(() {
+                      if (selected) {
+                        _selectedDealerServices.add(service);
+                      } else {
+                        _selectedDealerServices.remove(service);
+                      }
+                    });
+                  },
+                  backgroundColor: Colors.grey[200],
+                  selectedColor: Colors.pink[100],
+                  checkmarkColor: Colors.pink,
+                );
+              }).toList(),
+        ),
+        const SizedBox(height: 16),
+
+        // Gamme de prix
+        const Text(
+          'Gamme de prix',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _minPriceController,
+                decoration: const InputDecoration(
+                  labelText: 'Prix minimum',
+                  border: OutlineInputBorder(),
+                  prefixText: '€ ',
+                ),
+                keyboardType: TextInputType.number,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: TextField(
+                controller: _maxPriceController,
+                decoration: const InputDecoration(
+                  labelText: 'Prix maximum',
+                  border: OutlineInputBorder(),
+                  prefixText: '€ ',
+                ),
+                keyboardType: TextInputType.number,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Nombre approximatif de véhicules
+        TextField(
+          controller: _nbVehiculesController,
+          decoration: const InputDecoration(
+            labelText: 'Nombre approximatif de véhicules',
+            border: OutlineInputBorder(),
+          ),
+          keyboardType: TextInputType.number,
+        ),
+      ],
+    );
+  }
+
+  // Champs pour un véhicule individuel
+  Widget _buildVehiculeIndividuelFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Marque et modèle (stockés dans comodites)
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _marqueController,
+                decoration: const InputDecoration(
+                  labelText: 'Marque',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) {
+                  _updateCarAttribute('marque', value);
+                },
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: TextField(
+                controller: _modeleController,
+                decoration: const InputDecoration(
+                  labelText: 'Modèle',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) {
+                  _updateCarAttribute('modele', value);
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Année et kilométrage
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _anneeController,
+                decoration: const InputDecoration(
+                  labelText: 'Année',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  _updateCarAttribute('annee', value);
+                },
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: TextField(
+                controller: _kilometrageController,
+                decoration: const InputDecoration(
+                  labelText: 'Kilométrage',
+                  border: OutlineInputBorder(),
+                  suffixText: 'km',
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  _updateCarAttribute('kilometrage', value);
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Carburant et transmission
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: _selectedCarburant,
+                decoration: const InputDecoration(
+                  labelText: 'Carburant',
+                  border: OutlineInputBorder(),
+                ),
+                items:
+                    _carburantOptions.map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                onChanged: (newValue) {
+                  setState(() {
+                    _selectedCarburant = newValue;
+                    if (newValue != null) {
+                      _updateCarAttribute('carburant', newValue);
+                    }
+                  });
+                },
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: _selectedTransmission,
+                decoration: const InputDecoration(
+                  labelText: 'Transmission',
+                  border: OutlineInputBorder(),
+                ),
+                items:
+                    _transmissionOptions.map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                onChanged: (newValue) {
+                  setState(() {
+                    _selectedTransmission = newValue;
+                    if (newValue != null) {
+                      _updateCarAttribute('transmission', newValue);
+                    }
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Équipements (stockés dans services)
+        const Text(
+          'Équipements',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children:
+              _availableCarEquipements.map((equipement) {
+                final isSelected = _selectedCarEquipements.contains(equipement);
+                return FilterChip(
+                  label: Text(equipement),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    setState(() {
+                      if (selected) {
+                        _selectedCarEquipements.add(equipement);
+                      } else {
+                        _selectedCarEquipements.remove(equipement);
+                      }
+                    });
+                  },
+                  backgroundColor: Colors.grey[200],
+                  selectedColor: Colors.pink[100],
+                  checkmarkColor: Colors.pink,
+                );
+              }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSpecItem(IconData icon, String text, Color? backgroundColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: backgroundColor ?? Colors.grey[100],
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.grey[800]),
+          const SizedBox(width: 4),
+          Text(text, style: TextStyle(color: Colors.grey[800], fontSize: 14)),
+        ],
+      ),
     );
   }
 }

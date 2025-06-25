@@ -20,8 +20,13 @@ class PropertyDetailPage extends StatefulWidget {
   final double rating;
   final String description;
   final List<String> amenities;
+  final List<String> services;
+  final List<String> moyensDePaiement;
+  final List<String> langues;
   final List<String> imageUrls;
+  final Map<String, dynamic> horaires;
   final LatLng? coordinates;
+  final String type;
 
   const PropertyDetailPage({
     Key? key,
@@ -31,8 +36,13 @@ class PropertyDetailPage extends StatefulWidget {
     this.rating = 5.0,
     this.description = '',
     this.phone = '',
+    this.type = '',
     this.amenities = const [],
+    this.services = const [],
+    this.moyensDePaiement = const [],
+    this.langues = const [],
     this.imageUrls = const [],
+    this.horaires = const {},
     this.coordinates,
     required this.id,
   }) : super(key: key);
@@ -49,6 +59,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
   double _userRating = 5.0;
   int user_id = 0;
   final TextEditingController _commentController = TextEditingController();
+  bool _isFavorite = false;
 
   // Default amenities list when none are provided
   final List<String> _defaultAmenities = [
@@ -213,6 +224,220 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
     } else if (lowercaseAmenity.contains('internet')) {
       return Icons.public;
     }
+    // Paiement
+    if (lowercaseAmenity.contains('espèces') ||
+        lowercaseAmenity.contains('cash')) {
+      return Icons.money;
+    } else if (lowercaseAmenity.contains('carte bancaire') ||
+        lowercaseAmenity.contains('cb') ||
+        lowercaseAmenity.contains('carte de crédit')) {
+      return Icons.credit_card;
+    } else if (lowercaseAmenity.contains('chèque')) {
+      return Icons.receipt;
+    } else if (lowercaseAmenity.contains('virement')) {
+      return Icons.account_balance;
+    } else if (lowercaseAmenity.contains('mobile payment') ||
+        lowercaseAmenity.contains('paiement mobile')) {
+      return Icons.phone_iphone;
+
+      // Santé
+    } else if (lowercaseAmenity.contains('rendez-vous')) {
+      return Icons.calendar_today;
+    } else if (lowercaseAmenity.contains('téléconsultation')) {
+      return Icons.video_call;
+    } else if (lowercaseAmenity.contains('dossier médical')) {
+      return Icons.folder_shared;
+    } else if (lowercaseAmenity.contains('urgence')) {
+      return Icons.emergency;
+    } else if (lowercaseAmenity.contains('domicile')) {
+      return Icons.home;
+
+      // Langues
+    } else if (lowercaseAmenity.contains('français')) {
+      return Icons.language;
+    } else if (lowercaseAmenity.contains('anglais')) {
+      return Icons.translate;
+    } else if (lowercaseAmenity.contains('arabe')) {
+      return Icons.language;
+    } else if (lowercaseAmenity.contains('espagnol')) {
+      return Icons.language;
+    } else if (lowercaseAmenity.contains('allemand')) {
+      return Icons.language;
+
+      // Types de voitures
+    } else if (lowercaseAmenity.contains('berline')) {
+      return Icons.directions_car;
+    } else if (lowercaseAmenity.contains('suv')) {
+      return Icons.directions_car_filled;
+    } else if (lowercaseAmenity.contains('coupé')) {
+      return Icons.time_to_leave;
+    } else if (lowercaseAmenity.contains('cabriolet')) {
+      return Icons.wb_sunny;
+    } else if (lowercaseAmenity.contains('break')) {
+      return Icons.airline_seat_recline_normal;
+    } else if (lowercaseAmenity.contains('monospace')) {
+      return Icons.airport_shuttle;
+    } else if (lowercaseAmenity.contains('4x4')) {
+      return Icons.offline_pin;
+    } else if (lowercaseAmenity.contains('utilitaire')) {
+      return Icons.business;
+    } else if (lowercaseAmenity.contains('citadine')) {
+      return Icons.directions_car;
+    } else if (lowercaseAmenity.contains('sportive')) {
+      return Icons.sports_motorsports;
+    } else if (lowercaseAmenity.contains('luxe')) {
+      return Icons.stars;
+
+      // Marques de voitures
+    } else if ([
+      'audi',
+      'bmw',
+      'citroën',
+      'dacia',
+      'fiat',
+      'ford',
+      'honda',
+      'hyundai',
+      'kia',
+      'mercedes',
+      'nissan',
+      'opel',
+      'peugeot',
+      'renault',
+      'seat',
+      'skoda',
+      'toyota',
+      'volkswagen',
+      'volvo',
+    ].any(lowercaseAmenity.contains)) {
+      return Icons.directions_car;
+
+      // Services autos
+    } else if (lowercaseAmenity.contains('financement')) {
+      return Icons.account_balance_wallet;
+    } else if (lowercaseAmenity.contains('garantie')) {
+      return Icons.verified;
+    } else if (lowercaseAmenity.contains('entretien') ||
+        lowercaseAmenity.contains('réparation')) {
+      return Icons.build;
+    } else if (lowercaseAmenity.contains('reprise')) {
+      return Icons.autorenew;
+    } else if (lowercaseAmenity.contains('location')) {
+      return Icons.car_rental;
+    } else if (lowercaseAmenity.contains('essai')) {
+      return Icons.speed;
+    } else if (lowercaseAmenity.contains('livraison')) {
+      return Icons.local_shipping;
+    } else if (lowercaseAmenity.contains('service après-vente')) {
+      return Icons.support_agent;
+    } else if (lowercaseAmenity.contains('personnalisation')) {
+      return Icons.design_services;
+    } else if (lowercaseAmenity.contains('assurance')) {
+      return Icons.assignment;
+
+      // Voyages et excursions
+    } else if (lowercaseAmenity.contains('guide touristique')) {
+      return Icons.person;
+    } else if (lowercaseAmenity.contains('transport inclus')) {
+      return Icons.directions_bus;
+    } else if (lowercaseAmenity.contains('hébergement inclus')) {
+      return Icons.hotel;
+    } else if (lowercaseAmenity.contains('activités organisées')) {
+      return Icons.event;
+    } else if (lowercaseAmenity.contains('assurance voyage')) {
+      return Icons.card_travel;
+    } else if (lowercaseAmenity.contains('repas inclus')) {
+      return Icons.restaurant;
+    } else if (lowercaseAmenity.contains('excursions')) {
+      return Icons.terrain;
+    } else if (lowercaseAmenity.contains('billets d\'avion inclus')) {
+      return Icons.flight;
+    } else if (lowercaseAmenity.contains('service de réservation')) {
+      return Icons.book_online;
+    } else if (lowercaseAmenity.contains('wi-fi gratuit')) {
+      return Icons.wifi;
+    } else if (lowercaseAmenity.contains('service de traduction')) {
+      return Icons.translate;
+    } else if (lowercaseAmenity.contains('support 24/7')) {
+      return Icons.support_agent;
+
+      // Commerces et services
+    } else if (lowercaseAmenity.contains('supermarché')) {
+      return Icons.store;
+    } else if (lowercaseAmenity.contains('vêtements')) {
+      return Icons.checkroom;
+    } else if (lowercaseAmenity.contains('magasin d\'\u00e9lectronique')) {
+      return Icons.electrical_services;
+    } else if (lowercaseAmenity.contains('librairie')) {
+      return Icons.menu_book;
+    } else if (lowercaseAmenity.contains('centre commercial')) {
+      return Icons.shopping_bag;
+    } else if (lowercaseAmenity.contains('magasin de sport')) {
+      return Icons.sports;
+    } else if (lowercaseAmenity.contains('bijouterie')) {
+      return Icons.watch;
+    } else if (lowercaseAmenity.contains('magasin de meubles')) {
+      return Icons.weekend;
+    } else if (lowercaseAmenity.contains('pharmacie')) {
+      return Icons.local_pharmacy;
+    } else if (lowercaseAmenity.contains('magasin de jouets')) {
+      return Icons.toys;
+    } else if (lowercaseAmenity.contains('parking gratuit')) {
+      return Icons.local_parking;
+    } else if (lowercaseAmenity.contains('accessibilité')) {
+      return Icons.accessible;
+    } else if (lowercaseAmenity.contains('service de livraison')) {
+      return Icons.delivery_dining;
+    } else if (lowercaseAmenity.contains('réservation en ligne')) {
+      return Icons.book_online;
+    } else if (lowercaseAmenity.contains('promotions')) {
+      return Icons.discount;
+    } else if (lowercaseAmenity.contains('paiement sans contact')) {
+      return Icons.nfc;
+    } else if (lowercaseAmenity.contains('espace enfants')) {
+      return Icons.child_friendly;
+    } else if (lowercaseAmenity.contains('retours et échanges')) {
+      return Icons.swap_horiz;
+    } else if (lowercaseAmenity.contains('assistance client')) {
+      return Icons.support_agent;
+    }
+    // Nouveaux éléments
+    else if (lowercaseAmenity.contains('marocaine') ||
+        lowercaseAmenity.contains('italienne') ||
+        lowercaseAmenity.contains('française') ||
+        lowercaseAmenity.contains('asiatique') ||
+        lowercaseAmenity.contains('végétarienne') ||
+        lowercaseAmenity.contains('sans gluten')) {
+      return Icons.dining;
+    } else if (lowercaseAmenity.contains('menu enfant')) {
+      return Icons.child_friendly;
+    } else if (lowercaseAmenity.contains('emporter')) {
+      return Icons.shopping_bag;
+    } else if (lowercaseAmenity.contains('livraison')) {
+      return Icons.delivery_dining;
+    } else if (lowercaseAmenity.contains('réservation')) {
+      return Icons.calendar_today;
+    } else if (lowercaseAmenity.contains('buffet')) {
+      return Icons.local_dining;
+    } else if (lowercaseAmenity.contains('service à table')) {
+      return Icons.room_service;
+    } else if (lowercaseAmenity.contains('parking')) {
+      return Icons.local_parking;
+    } else if (lowercaseAmenity.contains('accessibilité')) {
+      return Icons.accessible;
+    } else if (lowercaseAmenity.contains('espace enfants')) {
+      return Icons.toys;
+    } else if (lowercaseAmenity.contains('terrasse')) {
+      return Icons.deck;
+    } else if (lowercaseAmenity.contains('salle privée')) {
+      return Icons.meeting_room;
+    } else if (lowercaseAmenity.contains('musique live')) {
+      return Icons.music_note;
+    } else if (lowercaseAmenity.contains('paiement sans contact')) {
+      return Icons.contactless;
+    } else if (lowercaseAmenity.contains('service après-vente')) {
+      return Icons.support_agent;
+    }
 
     // ❓ Icône par défaut
     return Icons.check_circle_outline;
@@ -354,6 +579,17 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
     }
   }
 
+  String _capitalize(String input) {
+    if (input.isEmpty) return input;
+    return input[0].toUpperCase() + input.substring(1);
+  }
+
+  void _toggleFavorite() {
+    setState(() {
+      _isFavorite = !_isFavorite;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -408,22 +644,22 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                   ),
                 ),
                 actions: [
+                  // CircleAvatar(
+                  //   backgroundColor: Colors.white,
+                  //   child: IconButton(
+                  //     icon: const Icon(Icons.share, color: Colors.black),
+                  //     onPressed: () {},
+                  //   ),
+                  // ),
+                  // const SizedBox(width: 10),
                   CircleAvatar(
                     backgroundColor: Colors.white,
                     child: IconButton(
-                      icon: const Icon(Icons.share, color: Colors.black),
-                      onPressed: () {},
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  CircleAvatar(
-                    backgroundColor: Colors.white,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.favorite_border,
-                        color: Colors.black,
+                      icon: Icon(
+                        _isFavorite ? Icons.favorite : Icons.favorite_border,
+                        color: _isFavorite ? Colors.red : Colors.black,
                       ),
-                      onPressed: () {},
+                      onPressed: _toggleFavorite,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -543,58 +779,330 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
 
                       // Équipements en grille
-                      const Text(
-                        'Informations principales',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              childAspectRatio: 4.5,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
+                      if (widget.amenities.isNotEmpty)
+                        Column(
+                          children: [
+                            const SizedBox(height: 24),
+                            const Text(
+                              'Informations principales',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                        itemCount: widget.amenities.length,
-                        itemBuilder: (context, index) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  _getAmenityIcon(widget.amenities[index]),
-                                  size: 20,
-                                  color: Theme.of(context).primaryColor,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    widget.amenities[index],
-                                    style: const TextStyle(fontSize: 13),
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 2,
+                            GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    childAspectRatio: 4.5,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
                                   ),
-                                ),
-                              ],
+                              itemCount: widget.amenities.length,
+                              itemBuilder: (context, index) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        _getAmenityIcon(
+                                          widget.amenities[index],
+                                        ),
+                                        size: 20,
+                                        color: Theme.of(context).primaryColor,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          widget.amenities[index].contains(':')
+                                              ? widget.amenities[index]
+                                                  .split(':')
+                                                  .skip(1)
+                                                  .join(':')
+                                                  .trim()
+                                              : widget.amenities[index],
+                                          style: const TextStyle(fontSize: 13),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 2,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
+                          ],
+                        ),
+                      if (widget.services.isNotEmpty)
+                        Column(
+                          children: [
+                            const SizedBox(height: 24),
+                            // Équipements en grille
+                            const Text(
+                              'Principaux services',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    childAspectRatio: 4.5,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                  ),
+                              itemCount: widget.services.length,
+                              itemBuilder: (context, index) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        _getAmenityIcon(widget.services[index]),
+                                        size: 20,
+                                        color: Theme.of(context).primaryColor,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          widget.services[index],
+                                          style: const TextStyle(fontSize: 13),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 2,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+
+                      if (widget.langues.isNotEmpty)
+                        Column(
+                          children: [
+                            const SizedBox(height: 24),
+                            // Équipements en grille
+                            const Text(
+                              'Langues parlées',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    childAspectRatio: 4.5,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                  ),
+                              itemCount: widget.langues.length,
+                              itemBuilder: (context, index) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        _getAmenityIcon(widget.langues[index]),
+                                        size: 20,
+                                        color: Theme.of(context).primaryColor,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          widget.langues[index],
+                                          style: const TextStyle(fontSize: 13),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 2,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      if (widget.moyensDePaiement.isNotEmpty)
+                        Column(
+                          children: [
+                            const SizedBox(height: 24),
+                            // Équipements en grille
+                            const Text(
+                              'Moyens de paiement',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    childAspectRatio: 4.5,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                  ),
+                              itemCount: widget.moyensDePaiement.length,
+                              itemBuilder: (context, index) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        _getAmenityIcon(
+                                          widget.moyensDePaiement[index],
+                                        ),
+                                        size: 20,
+                                        color: Theme.of(context).primaryColor,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          widget.moyensDePaiement[index],
+                                          style: const TextStyle(fontSize: 13),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 2,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      if (widget.horaires.isNotEmpty)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.2),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: const [
+                                      Icon(
+                                        Icons.access_time,
+                                        color: Colors.teal,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        "Horaires d'ouverture",
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.teal,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  ...widget.horaires.entries.map((entry) {
+                                    final isClosed = entry.value
+                                        .toLowerCase()
+                                        .contains("fermé");
+
+                                    return Column(
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              _capitalize(entry.key),
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.grey[800],
+                                              ),
+                                            ),
+                                            Text(
+                                              entry.value,
+                                              style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w400,
+                                                color:
+                                                    isClosed
+                                                        ? Colors.redAccent
+                                                        : Colors.black87,
+                                                fontStyle:
+                                                    isClosed
+                                                        ? FontStyle.italic
+                                                        : FontStyle.normal,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const Divider(
+                                          height: 16,
+                                          thickness: 0.8,
+                                          color: Colors.grey,
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
 
                       // Note et commentaires - Rendu cliquable
                       GestureDetector(
@@ -791,8 +1299,22 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                       child: RichText(
                         text: TextSpan(
                           children: [
+                            if (widget.type == 'Shopping' ||
+                                widget.type == 'Restaurant')
+                              TextSpan(
+                                text: 'À partir de ',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  decoration: TextDecoration.underline,
+                                  color:
+                                      Colors.black, // Important pour RichText
+                                ),
+                              ),
                             TextSpan(
-                              text: widget.price,
+                              text:
+                                  widget.type == 'Santé'
+                                      ? "Contactez-nous"
+                                      : widget.price,
                               style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
@@ -800,14 +1322,16 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                                 color: Colors.black, // Important pour RichText
                               ),
                             ),
-                            TextSpan(
-                              text: ' par nuit',
-                              style: TextStyle(
-                                fontSize: 18,
-                                decoration: TextDecoration.underline,
-                                color: Colors.black, // Important pour RichText
+                            if (widget.type == 'logement')
+                              TextSpan(
+                                text: ' par nuit',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  decoration: TextDecoration.underline,
+                                  color:
+                                      Colors.black, // Important pour RichText
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
