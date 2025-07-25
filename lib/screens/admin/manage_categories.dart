@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:maroceasy/widgets/categoryIconMapper.dart';
 import 'package:maroceasy/widgets/loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -194,7 +195,12 @@ class _ManageCategoriesState extends State<ManageCategories> {
                                           ),
                                     )
                                   else
-                                    const Icon(Icons.category, size: 40),
+                                    Icon(
+                                      CategoryIconMapper.getIconForCategory(
+                                        _categories[index]['nom'],
+                                      ),
+                                      size: 40,
+                                    ),
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: Text(
@@ -242,6 +248,9 @@ class _ManageCategoriesState extends State<ManageCategories> {
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _iconController = TextEditingController();
+  String? _selectedCategoryName;
+  final List<String> _availableCategories =
+      CategoryIconMapper.availableCategories;
 
   @override
   void dispose() {
@@ -262,12 +271,33 @@ class _ManageCategoriesState extends State<ManageCategories> {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  controller: _nameController,
+                DropdownButtonFormField<String>(
+                  value: _selectedCategoryName,
                   decoration: const InputDecoration(
                     labelText: 'Nom de la catégorie',
                     border: OutlineInputBorder(),
                   ),
+                  items:
+                      _availableCategories.map((category) {
+                        return DropdownMenuItem(
+                          value: category,
+                          child: Row(
+                            children: [
+                              Icon(
+                                CategoryIconMapper.getIconForCategory(category),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(category, style: TextStyle(fontSize: 12)),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCategoryName = value!;
+                    });
+                  },
                 ),
               ],
             ),
@@ -299,7 +329,7 @@ class _ManageCategoriesState extends State<ManageCategories> {
   }
 
   void _showEditCategoryDialog(Map<String, dynamic> category) {
-    _nameController.text = category['nom'] ?? '';
+    _selectedCategoryName = (category['nom'] as String).toLowerCase();
 
     showDialog(
       context: context,
@@ -309,12 +339,33 @@ class _ManageCategoriesState extends State<ManageCategories> {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  controller: _nameController,
+                DropdownButtonFormField<String>(
+                  value: _selectedCategoryName,
                   decoration: const InputDecoration(
                     labelText: 'Nom de la catégorie',
                     border: OutlineInputBorder(),
                   ),
+                  items:
+                      _availableCategories.map((category) {
+                        return DropdownMenuItem(
+                          value: category,
+                          child: Row(
+                            children: [
+                              Icon(
+                                CategoryIconMapper.getIconForCategory(category),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(category, style: TextStyle(fontSize: 12)),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCategoryName = value!;
+                    });
+                  },
                 ),
               ],
             ),
@@ -376,7 +427,7 @@ class _ManageCategoriesState extends State<ManageCategories> {
   }
 
   Future<void> _addCategory() async {
-    if (_nameController.text.isEmpty) {
+    if (_selectedCategoryName == null || _selectedCategoryName!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Le nom de la catégorie est requis')),
       );
@@ -391,7 +442,7 @@ class _ManageCategoriesState extends State<ManageCategories> {
         throw Exception('Not authenticated');
       }
 
-      final Map<String, dynamic> categoryData = {'nom': _nameController.text};
+      final Map<String, dynamic> categoryData = {'nom': _selectedCategoryName};
 
       final response = await http.post(
         Uri.parse('https://maroceasy.konnekt.fr/api/categories'),
@@ -418,7 +469,7 @@ class _ManageCategoriesState extends State<ManageCategories> {
   }
 
   Future<void> _updateCategory(int categoryId) async {
-    if (_nameController.text.isEmpty) {
+    if (_selectedCategoryName == null || _selectedCategoryName!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Le nom de la catégorie est requis')),
       );
@@ -433,13 +484,13 @@ class _ManageCategoriesState extends State<ManageCategories> {
         throw Exception('Not authenticated');
       }
 
-      final Map<String, dynamic> categoryData = {'nom': _nameController.text};
+      final Map<String, dynamic> categoryData = {'nom': _selectedCategoryName};
 
-      final response = await http.put(
+      final response = await http.patch(
         Uri.parse('https://maroceasy.konnekt.fr/api/categories/$categoryId'),
         headers: {
           'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/merge-patch+json',
         },
         body: json.encode(categoryData),
       );
@@ -453,6 +504,7 @@ class _ManageCategoriesState extends State<ManageCategories> {
         throw Exception('Failed to update category: ${response.body}');
       }
     } catch (e) {
+      print('Error updating category: $e');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));

@@ -229,6 +229,10 @@ class _ManagePropertiesState extends State<ManageProperties> {
   int? _selectedCategoryId;
   List<String> _selectedAmenities = [];
 
+  int itemsPerPage = 30;
+  int currentPage = 1; // Commence à 1
+  int totalPages = 1;
+
   // Controllers pour les voitures
   final TextEditingController _marqueController = TextEditingController();
   final TextEditingController _modeleController = TextEditingController();
@@ -357,6 +361,8 @@ class _ManagePropertiesState extends State<ManageProperties> {
     'Virement bancaire',
     'Mobile payment',
   ];
+
+  List<int> pages = [];
 
   // Helper method to update car attributes
   void _updateCarAttribute(String key, String value) {
@@ -495,6 +501,10 @@ class _ManagePropertiesState extends State<ManageProperties> {
     }
   }
 
+  void goToPage(int page) {
+    _fetchProperties();
+  }
+
   Future<void> _fetchProperties() async {
     setState(() {
       _isLoading = true;
@@ -512,7 +522,7 @@ class _ManagePropertiesState extends State<ManageProperties> {
 
       final response = await http.get(
         Uri.parse(
-          'https://maroceasy.konnekt.fr/api/annonces?&user.id=${userData['id']}',
+          'https://maroceasy.konnekt.fr/api/annonces?&user.id=${userData['id']}&page=$currentPage&nom=$_searchQuery',
         ),
         headers: {
           'Authorization': 'Bearer $token',
@@ -525,6 +535,9 @@ class _ManagePropertiesState extends State<ManageProperties> {
         if (mounted) {
           setState(() {
             _properties = data['hydra:member'];
+            currentPage = 1;
+            totalPages = (data['hydra:totalItems'] / itemsPerPage).ceil();
+            pages = List.generate(totalPages, (index) => index + 1);
             print('Fetched properties: ${_properties.length}');
             _isLoading = false;
           });
@@ -677,6 +690,66 @@ class _ManagePropertiesState extends State<ManageProperties> {
     }
   }
 
+  List<Widget> _buildPaginationPages() {
+    const int maxVisiblePages = 5;
+    List<Widget> widgets = [];
+
+    int startPage = (currentPage - 2).clamp(1, totalPages);
+    int endPage = (currentPage + 2).clamp(1, totalPages);
+
+    if (startPage > 1) {
+      widgets.add(_buildPageButton(1));
+      if (startPage > 2) {
+        widgets.add(
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4.0),
+            child: Text('...'),
+          ),
+        );
+      }
+    }
+
+    for (int i = startPage; i <= endPage; i++) {
+      widgets.add(_buildPageButton(i));
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        widgets.add(
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4.0),
+            child: Text('...'),
+          ),
+        );
+      }
+      widgets.add(_buildPageButton(totalPages));
+    }
+
+    return widgets;
+  }
+
+  Widget _buildPageButton(int page) {
+    final isSelected = page == currentPage;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: TextButton(
+        style: TextButton.styleFrom(
+          backgroundColor: isSelected ? Colors.pink : Colors.transparent,
+          foregroundColor: isSelected ? Colors.white : Colors.black,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        onPressed: () {
+          setState(() {
+            currentPage = page;
+            _fetchProperties();
+          });
+        },
+        child: Text('$page'),
+      ),
+    );
+  }
+
   void _toggleAddPropertyForm() {
     setState(() {
       _isAddingProperty = !_isAddingProperty;
@@ -745,8 +818,143 @@ class _ManagePropertiesState extends State<ManageProperties> {
       _selectedCategoryId = categoryId;
     }
 
+    String categoryName = CategoryFormType.getFormTypeForCategory(
+      _selectedCategoryId!,
+      _categories,
+    );
+
     // Set amenities
-    _selectedAmenities = List<String>.from(property['comodites'] ?? []);
+    if (categoryName == CategoryFormType.LOGEMENT ||
+        categoryName == CategoryFormType.VOYAGE) {
+      _selectedAmenities = List<String>.from(property['comodites'] ?? []);
+    } else if (categoryName == CategoryFormType.SANTE) {
+      _selectedLanguages = List<String>.from(property['langues'] ?? []);
+      _selectedServices = List<String>.from(property['services'] ?? []);
+      _selectedPaymentMethods = List<String>.from(
+        property['moyensPaiement'] ?? [],
+      );
+      _businessHours = Map<String, String>.from(property['horaires'] ?? []);
+    } else if (categoryName == CategoryFormType.SHOPPING ||
+        categoryName == CategoryFormType.RESTAURANT) {
+      _selectedShoppingAmenities = List<String>.from(
+        property['comodites'] ?? [],
+      );
+      _businessHours = Map<String, String>.from(property['horaires'] ?? []);
+    } else if (categoryName == CategoryFormType.VOITURE) {
+      if (_isConcessionnaire) {
+        final List<String> comodites = List<String>.from(
+          property['comodites'] ?? [],
+        );
+
+        String? nomConcessionnaire;
+        String? nbVehicules;
+        String? minPrice;
+        String? maxPrice;
+        final List<String> vehicleTypes = [];
+        final List<String> carBrands = [];
+        final List<String> dealerServices = [];
+
+        for (final item in comodites) {
+          final parts = item.split(':');
+          if (parts.length < 2) continue;
+
+          final category = parts[0];
+
+          if (category == 'concessionnaire' && parts.length == 3) {
+            final key = parts[1];
+            final value = parts[2];
+            switch (key) {
+              case 'nom':
+                nomConcessionnaire = value;
+                break;
+              case 'nbVehicules':
+                nbVehicules = value;
+                break;
+              case 'minPrice':
+                minPrice = value;
+                break;
+              case 'maxPrice':
+                maxPrice = value;
+                break;
+            }
+          } else if (category == 'vehicleType' && parts.length == 2) {
+            vehicleTypes.add(parts[1]);
+          } else if (category == 'carBrand' && parts.length == 2) {
+            carBrands.add(parts[1]);
+          } else if (category == 'dealerService' && parts.length == 2) {
+            dealerServices.add(parts[1]);
+          }
+        }
+
+        _nomConcessionnaireController.text = nomConcessionnaire ?? '';
+        _nbVehiculesController.text = nbVehicules ?? '';
+        _minPriceController.text = minPrice ?? '';
+        _maxPriceController.text = maxPrice ?? '';
+
+        _selectedVehicleTypes = vehicleTypes;
+        _selectedCarBrands = carBrands;
+        _selectedDealerServices = dealerServices;
+
+        _selectedDealerServices = List<String>.from(property['services'] ?? []);
+      } else {
+        // Store car attributes in comodites as "key:value" pairs
+        final carComodites = List<String>.from(property['comodites'] ?? []);
+
+        // Variables pour pré-remplir les contrôleurs
+        String? marque;
+        String? annee;
+        String? modele;
+        String? kilometrage;
+        String? carburant;
+        String? transmission;
+
+        for (final item in carComodites) {
+          final parts = item.split(':');
+          if (parts.length < 2) continue;
+
+          final key = parts[0].trim();
+          final value = parts[1].trim();
+
+          switch (key) {
+            case 'marque':
+              marque = value;
+              break;
+            case 'annee':
+              annee = value;
+              break;
+            case 'modele':
+              modele = value;
+              break;
+            case 'kilometrage':
+              kilometrage = value;
+              break;
+            case 'carburant':
+              carburant = value;
+              break;
+            case 'transmission':
+              transmission = value;
+              break;
+          }
+        }
+
+        _marqueController.text = marque ?? '';
+        _anneeController.text = annee ?? '';
+        _modeleController.text = modele ?? '';
+        _kilometrageController.text = kilometrage ?? '';
+        _selectedCarburant = carburant;
+        _selectedTransmission = transmission;
+
+        // Add car-specific fields
+        // Transformer carComodites en Map<String, String>
+        final Map<String, String> carComoditesMap = {
+          for (var item in carComodites) item.split(':')[0]: item.split(':')[1],
+        };
+
+        // Insérer dans _carAttributes
+        _carAttributes.addAll(carComoditesMap);
+        _selectedCarEquipements = List<String>.from(property['services'] ?? []);
+      }
+    }
 
     setState(() {
       _isEditingProperty = true;
@@ -1290,6 +1498,7 @@ class _ManagePropertiesState extends State<ManageProperties> {
     if (_searchQuery.isEmpty) {
       return _properties;
     }
+    _fetchProperties();
     return _properties.where((property) {
       final name = property['nom']?.toString().toLowerCase() ?? '';
       final address = property['adresse']?.toString().toLowerCase() ?? '';
@@ -1326,6 +1535,7 @@ class _ManagePropertiesState extends State<ManageProperties> {
                       onChanged: (value) {
                         setState(() {
                           _searchQuery = value;
+                          _fetchProperties();
                         });
                       },
                     ),
@@ -1348,6 +1558,43 @@ class _ManagePropertiesState extends State<ManageProperties> {
 
               const SizedBox(height: 16),
 
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Flèche gauche
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed:
+                        currentPage > 1
+                            ? () {
+                              setState(() {
+                                currentPage--;
+                                _fetchProperties();
+                              });
+                            }
+                            : null,
+                  ),
+
+                  // Numéros de pages avec "..."
+                  ..._buildPaginationPages(),
+
+                  // Flèche droite
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed:
+                        currentPage < totalPages
+                            ? () {
+                              setState(() {
+                                currentPage++;
+                                _fetchProperties();
+                              });
+                            }
+                            : null,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
               // Properties list
               Expanded(
                 child:
@@ -1358,12 +1605,12 @@ class _ManagePropertiesState extends State<ManageProperties> {
                             itemBuilder: (context, index) => LoaderAnnonce(),
                           ),
                         )
-                        : _filteredProperties.isEmpty
+                        : _properties.isEmpty
                         ? const Center(child: Text('Aucune propriété trouvée'))
                         : ListView.builder(
-                          itemCount: _filteredProperties.length,
+                          itemCount: _properties.length,
                           itemBuilder: (context, index) {
-                            final property = _filteredProperties[index];
+                            final property = _properties[index];
                             return Card(
                               margin: const EdgeInsets.only(bottom: 16),
                               child: Padding(
@@ -1822,7 +2069,9 @@ class _ManagePropertiesState extends State<ManageProperties> {
                           const SizedBox(height: 16),
 
                           // Add the dynamic category-specific fields
-                          _buildCategorySpecificFields(),
+                          _buildCategorySpecificFields(
+                            _isEditingProperty ? _selectedCategoryId! : 0,
+                          ),
 
                           /*const SizedBox(height: 16),
 
@@ -1874,7 +2123,28 @@ class _ManagePropertiesState extends State<ManageProperties> {
                               const SizedBox(width: 16),
                               ElevatedButton(
                                 onPressed:
-                                    _isEditingProperty
+                                    (_emailController.text.isEmpty ||
+                                            _phoneController.text.isEmpty ||
+                                            _selectedCityId == null ||
+                                            _selectedCategoryId == null ||
+                                            _nameController.text.isEmpty ||
+                                            _addressController.text.isEmpty ||
+                                            _latitudeController.text.isEmpty ||
+                                            _longitudeController.text.isEmpty ||
+                                            _descriptionController
+                                                .text
+                                                .isEmpty ||
+                                            _priceController.text.isEmpty)
+                                        ? () => ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Veillez remplir tous les champs obligatoires.',
+                                            ),
+                                          ),
+                                        )
+                                        : _isEditingProperty
                                         ? () =>
                                             _updateProperty(_editingPropertyId!)
                                         : _addProperty,
@@ -2048,8 +2318,15 @@ class _ManagePropertiesState extends State<ManageProperties> {
     );
   }
 
-  Widget _buildCategorySpecificFields() {
-    switch (_currentFormType) {
+  Widget _buildCategorySpecificFields(int categoryId) {
+    String _formType =
+        _isEditingProperty
+            ? _currentFormType = CategoryFormType.getFormTypeForCategory(
+              categoryId,
+              _categories,
+            )
+            : _currentFormType;
+    switch (_formType) {
       case CategoryFormType.SANTE:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2388,30 +2665,109 @@ class _ManagePropertiesState extends State<ManageProperties> {
             // Option pour choisir entre annonce individuelle ou concessionnaire
             Row(
               children: [
+                // Véhicule individuel
                 Expanded(
-                  child: RadioListTile<bool>(
-                    title: const Text('Véhicule individuel'),
-                    value: false,
-                    groupValue: _isConcessionnaire,
-                    onChanged: (value) {
+                  child: GestureDetector(
+                    onTap: () {
                       setState(() {
-                        _isConcessionnaire = value!;
+                        _isConcessionnaire = false;
                       });
                     },
-                    activeColor: Colors.pink,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        color:
+                            !_isConcessionnaire
+                                ? Colors.pink.withOpacity(0.1)
+                                : Colors.grey.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color:
+                              !_isConcessionnaire
+                                  ? Colors.pink
+                                  : Colors.grey.withOpacity(0.3),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.directions_car,
+                            color:
+                                !_isConcessionnaire ? Colors.pink : Colors.grey,
+                            size: 28,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Véhicule individuel',
+                            style: TextStyle(
+                              color:
+                                  !_isConcessionnaire
+                                      ? Colors.pink
+                                      : Colors.black87,
+                              fontWeight:
+                                  !_isConcessionnaire
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
+
+                const SizedBox(width: 12),
+
+                // Concessionnaire
                 Expanded(
-                  child: RadioListTile<bool>(
-                    title: const Text('Concessionnaire'),
-                    value: true,
-                    groupValue: _isConcessionnaire,
-                    onChanged: (value) {
+                  child: GestureDetector(
+                    onTap: () {
                       setState(() {
-                        _isConcessionnaire = value!;
+                        _isConcessionnaire = true;
                       });
                     },
-                    activeColor: Colors.pink,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        color:
+                            _isConcessionnaire
+                                ? Colors.pink.withOpacity(0.1)
+                                : Colors.grey.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color:
+                              _isConcessionnaire
+                                  ? Colors.pink
+                                  : Colors.grey.withOpacity(0.3),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.store,
+                            color:
+                                _isConcessionnaire ? Colors.pink : Colors.grey,
+                            size: 28,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Concessionnaire',
+                            style: TextStyle(
+                              color:
+                                  _isConcessionnaire
+                                      ? Colors.pink
+                                      : Colors.black87,
+                              fontWeight:
+                                  _isConcessionnaire
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
