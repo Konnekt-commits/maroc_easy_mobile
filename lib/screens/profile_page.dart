@@ -77,10 +77,6 @@ class _ProfilePageState extends State<ProfilePage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
     await prefs.remove('userData');
-
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (context) => LoginPage()));
   }
 
   void _editProfile() {
@@ -362,9 +358,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: const Text('Non', style: TextStyle(color: Colors.pink)),
               ),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   // Implement logout functionality
                   Navigator.pop(context);
+
+                  await _logout();
                   Navigator.pushReplacementNamed(context, '/login');
                 },
                 style: ButtonStyle(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
@@ -1511,6 +1512,8 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
     }).toList();
   }
 
+  Timer? _timer;
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -1520,24 +1523,39 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              SizedBox(height: 30),
+
               // Search and add property row
               Row(
                 children: [
                   Expanded(
-                    child: TextField(
-                      decoration: const InputDecoration(
-                        hintText: 'Rechercher une propriété...',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(20)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: TextField(
+                          onChanged: (value) {
+                            if (_timer?.isActive ?? false) _timer!.cancel();
+                            _timer = Timer(const Duration(seconds: 1), () {
+                              setState(() {
+                                _searchQuery = value;
+                                _fetchProperties();
+                              });
+                            });
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Rechercher une annonce...',
+                            prefixIcon: const Icon(Icons.search),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 15,
+                            ),
+                          ),
                         ),
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value;
-                          _fetchProperties();
-                        });
-                      },
                     ),
                   ),
                   IconButton(
@@ -1556,44 +1574,47 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                 ],
               ),
 
-              const SizedBox(height: 16),
+              Visibility(
+                visible: totalPages > 1,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Flèche gauche
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed:
+                            currentPage > 1
+                                ? () {
+                                  setState(() {
+                                    currentPage--;
+                                    _fetchProperties();
+                                  });
+                                }
+                                : null,
+                      ),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Flèche gauche
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left),
-                    onPressed:
-                        currentPage > 1
-                            ? () {
-                              setState(() {
-                                currentPage--;
-                                _fetchProperties();
-                              });
-                            }
-                            : null,
+                      // Numéros de pages avec "..."
+                      ..._buildPaginationPages(),
+
+                      // Flèche droite
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed:
+                            currentPage < totalPages
+                                ? () {
+                                  setState(() {
+                                    currentPage++;
+                                    _fetchProperties();
+                                  });
+                                }
+                                : null,
+                      ),
+                    ],
                   ),
-
-                  // Numéros de pages avec "..."
-                  ..._buildPaginationPages(),
-
-                  // Flèche droite
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right),
-                    onPressed:
-                        currentPage < totalPages
-                            ? () {
-                              setState(() {
-                                currentPage++;
-                                _fetchProperties();
-                              });
-                            }
-                            : null,
-                  ),
-                ],
+                ),
               ),
-              const SizedBox(height: 16),
 
               // Properties list
               Expanded(

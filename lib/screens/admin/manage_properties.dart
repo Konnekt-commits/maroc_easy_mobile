@@ -1257,7 +1257,7 @@ class _ManagePropertiesState extends State<ManageProperties> {
           _fetchProperties();
           _cancelForm();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Propriété ajoutée avec succès')),
+            const SnackBar(content: Text('annonce ajoutée avec succès')),
           );
         }
       } else if (response.statusCode == 401) {
@@ -1401,7 +1401,7 @@ class _ManagePropertiesState extends State<ManageProperties> {
           _fetchProperties();
           _cancelForm();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Propriété modifiée avec succès')),
+            const SnackBar(content: Text('annonce modifiée avec succès')),
           );
         }
       } else if (response.statusCode == 401) {
@@ -1440,7 +1440,7 @@ class _ManagePropertiesState extends State<ManageProperties> {
         if (mounted) {
           _fetchProperties();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Propriété supprimée avec succès')),
+            const SnackBar(content: Text('annonce supprimée avec succès')),
           );
         }
       } else if (response.statusCode == 401) {
@@ -1526,7 +1526,7 @@ class _ManagePropertiesState extends State<ManageProperties> {
                   Expanded(
                     child: TextField(
                       decoration: const InputDecoration(
-                        hintText: 'Rechercher une propriété...',
+                        hintText: 'Rechercher une annonce...',
                         prefixIcon: Icon(Icons.search),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.all(Radius.circular(20)),
@@ -1556,44 +1556,47 @@ class _ManagePropertiesState extends State<ManageProperties> {
                 ],
               ),
 
-              const SizedBox(height: 16),
+              Visibility(
+                visible: totalPages > 1,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Flèche gauche
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed:
+                            currentPage > 1
+                                ? () {
+                                  setState(() {
+                                    currentPage--;
+                                    _fetchProperties();
+                                  });
+                                }
+                                : null,
+                      ),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Flèche gauche
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left),
-                    onPressed:
-                        currentPage > 1
-                            ? () {
-                              setState(() {
-                                currentPage--;
-                                _fetchProperties();
-                              });
-                            }
-                            : null,
+                      // Numéros de pages avec "..."
+                      ..._buildPaginationPages(),
+
+                      // Flèche droite
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed:
+                            currentPage < totalPages
+                                ? () {
+                                  setState(() {
+                                    currentPage++;
+                                    _fetchProperties();
+                                  });
+                                }
+                                : null,
+                      ),
+                    ],
                   ),
-
-                  // Numéros de pages avec "..."
-                  ..._buildPaginationPages(),
-
-                  // Flèche droite
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right),
-                    onPressed:
-                        currentPage < totalPages
-                            ? () {
-                              setState(() {
-                                currentPage++;
-                                _fetchProperties();
-                              });
-                            }
-                            : null,
-                  ),
-                ],
+                ),
               ),
-              const SizedBox(height: 16),
 
               // Properties list
               Expanded(
@@ -1606,7 +1609,7 @@ class _ManagePropertiesState extends State<ManageProperties> {
                           ),
                         )
                         : _properties.isEmpty
-                        ? const Center(child: Text('Aucune propriété trouvée'))
+                        ? const Center(child: Text('Aucune annonce trouvée'))
                         : ListView.builder(
                           itemCount: _properties.length,
                           itemBuilder: (context, index) {
@@ -1785,8 +1788,8 @@ class _ManagePropertiesState extends State<ManageProperties> {
                             children: [
                               Text(
                                 _isEditingProperty
-                                    ? 'Modifier la propriété'
-                                    : 'Ajouter une propriété',
+                                    ? 'Modifier la annonce'
+                                    : 'Ajouter une annonce',
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -3707,7 +3710,7 @@ class _ManagePropertiesState extends State<ManageProperties> {
     );
   }
 
-  // Vérifier si une propriété est un concessionnaire
+  // Vérifier si une annonce est un concessionnaire
   bool _isPropertyConcessionnaire(Map<String, dynamic> property) {
     if (property['comodites'] != null && property['comodites'] is List) {
       return (property['comodites'] as List).any(

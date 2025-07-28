@@ -1,120 +1,84 @@
 import 'package:flutter/material.dart';
 import 'package:maroceasy/screens/professional/manage_my_properties.dart';
+import 'package:maroceasy/screens/profile_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfessionalDashboard extends StatefulWidget {
-  const ProfessionalDashboard({Key? key}) : super(key: key);
+  const ProfessionalDashboard({super.key});
 
   @override
   State<ProfessionalDashboard> createState() => _ProfessionalDashboardState();
 }
 
 class _ProfessionalDashboardState extends State<ProfessionalDashboard> {
+  // Inside _ProfessionalDashboardState class
   int _selectedIndex = 0;
+  final List<Widget> _screens = [];
 
-  final List<Widget> _screens = [const ManageMyProperties()];
-
-  final List<String> _titles = ['Mes Propriétés'];
-  // Show confirmation dialog before deconnexion
-  void _showDeconnexionConfirmation() {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Déconnexion'),
-            content: Text('Voulez-vous vraiment vous déconnecter?'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('Non', style: TextStyle(color: Colors.pink)),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  // Implement logout functionality
-                  Navigator.pop(context);
-                  Navigator.pushReplacementNamed(context, '/login');
-                },
-                style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all<Color>(
-                    Colors.pink,
-                  ),
-                ),
-                child: const Text('Oui', style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          ),
-    );
+  @override
+  void initState() {
+    // Initialize screens
+    _screens.addAll([
+      ManageMyProperties(), // Main explore screen
+      // FavoritesPage(), // You'll need to create this
+      // AdminPage(), // You'll need to create this
+      ProfilePage(), // We already created this
+    ]);
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_titles[_selectedIndex]),
-        backgroundColor: Colors.pink,
-        foregroundColor: Colors.white,
+      body: _screens[_selectedIndex], // Display the selected screen
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.pink,
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.manage_accounts),
+            label: 'Gérer mes annonces',
+          ),
+          // BottomNavigationBarItem(
+          //   icon: Icon(Icons.favorite_border),
+          //   label: 'Favoris',
+          // ),
+          // BottomNavigationBarItem(
+          //   icon: Icon(Icons.admin_panel_settings_outlined),
+          //   label: 'Administration',
+          // ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Profil',
+          ),
+        ],
       ),
-      body: _screens[_selectedIndex],
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(color: Colors.pink),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Espace Professionnel',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Gérez vos propriétés',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                ],
-              ),
-            ),
-            ListTile(
-              selectedColor: Colors.pink,
-              leading: const Icon(Icons.home),
-              title: const Text('Mes Propriétés'),
-              selected: _selectedIndex == 0,
-              onTap: () {
-                setState(() {
-                  _selectedIndex = 0;
-                });
-                Navigator.pop(context);
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text(
-                'Déconnexion',
-                style: TextStyle(color: Colors.red),
-              ),
-              onTap: () async {
-                // Implement logout functionality
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.remove('token');
-                await prefs.remove('userData');
+    );
+  }
 
-                if (mounted) {
-                  _showDeconnexionConfirmation();
-                }
-              },
+  Widget _buildCategoryItem(String title, IconData icon, bool isSelected) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 20),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: isSelected ? Colors.black : Colors.grey),
+          const SizedBox(height: 5),
+          Text(
+            title,
+            style: TextStyle(
+              color: isSelected ? Colors.black : Colors.grey,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

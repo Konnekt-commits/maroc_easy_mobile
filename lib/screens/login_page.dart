@@ -85,6 +85,8 @@ class _LoginPageState extends State<LoginPage> {
         // Redirect based on user role
         if (userData['roles'].contains('ROLE_ADMIN')) {
           Navigator.of(context).pushReplacementNamed('/admin');
+        } else if (userData['roles'].contains('ROLE_PROFESSIONAL')) {
+          Navigator.of(context).pushReplacementNamed('/professional');
         } else {
           // Navigate to home page for regular users
           Navigator.of(context).pushReplacement(
