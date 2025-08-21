@@ -109,6 +109,8 @@ class _ManageCategoriesState extends State<ManageCategories> {
     }).toList();
   }
 
+  final _formKey = GlobalKey<FormState>();
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -268,38 +270,49 @@ class _ManageCategoriesState extends State<ManageCategories> {
       builder:
           (context) => AlertDialog(
             title: const Text('Ajouter une catégorie'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  value: _selectedCategoryName,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom de la catégorie',
-                    border: OutlineInputBorder(),
+            content: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: _selectedCategoryName,
+                    decoration: const InputDecoration(
+                      labelText: 'Nom de la catégorie',
+                      border: OutlineInputBorder(),
+                    ),
+                    items:
+                        _availableCategories.map((category) {
+                          return DropdownMenuItem(
+                            value: category,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  CategoryIconMapper.getIconForCategory(
+                                    category,
+                                  ),
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(category, style: TextStyle(fontSize: 12)),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedCategoryName = value!;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null) {
+                        return "Veuillez sélectionner une catégorie";
+                      }
+                      return null; // ✅ pas d'erreur
+                    },
                   ),
-                  items:
-                      _availableCategories.map((category) {
-                        return DropdownMenuItem(
-                          value: category,
-                          child: Row(
-                            children: [
-                              Icon(
-                                CategoryIconMapper.getIconForCategory(category),
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(category, style: TextStyle(fontSize: 12)),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedCategoryName = value!;
-                    });
-                  },
-                ),
-              ],
+                ],
+              ),
             ),
             actions: [
               TextButton(
@@ -311,8 +324,18 @@ class _ManageCategoriesState extends State<ManageCategories> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context);
-                  _addCategory();
+                  if (_formKey.currentState!.validate()) {
+                    // ✅ Vérification supplémentaire pour l'image si on ajoute
+                    Navigator.pop(context);
+                    _addCategory();
+                  } else {
+                    // ❌ au moins un champ est vide → erreur affichée en rouge
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Veuillez corriger les erreurs.'),
+                      ),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.pink),
                 child: const Text(

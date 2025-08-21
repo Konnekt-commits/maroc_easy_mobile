@@ -33,7 +33,7 @@ class _HomeContentState extends State<HomeContent> {
   String _adresse = "";
   int _villeId = 0;
   double _prixMin = 0;
-  double _prixMax = 5000;
+  double _prixMax = 500000;
   List<Widget> carouselItems = [];
   int _selectedIndex = 0;
 
@@ -403,6 +403,20 @@ class _HomeContentState extends State<HomeContent> {
     });
   }
 
+  // 🔹 Fonction utilitaire pour centraliser la logique
+  List<String> _getImageUrls(dynamic annonce) {
+    final photos =
+        (annonce["galeriesPhoto"] as List<dynamic>)
+            .map<String>((photo) => photo["urlPhoto"] as String)
+            .toList();
+
+    return photos.isEmpty
+        ? [
+          "https://st4.depositphotos.com/17828278/24401/v/450/depositphotos_244011872-stock-illustration-image-vector-symbol-missing-available.jpg",
+        ] // ✅ image par défaut
+        : photos;
+  }
+
   @override
   void initState() {
     initPage();
@@ -443,7 +457,7 @@ class _HomeContentState extends State<HomeContent> {
           ),
           DiscreetPriceFilter(
             minPrice: 0,
-            maxPrice: 5000,
+            maxPrice: 500000,
             onPriceChanged: (min, max) {
               // Filtrez vos données ici
               if (_timer?.isActive ?? false) _timer!.cancel();
@@ -596,15 +610,9 @@ class _HomeContentState extends State<HomeContent> {
                                   rating: getAverageNote(
                                     _annonces[index]["maeAvis"] ?? [],
                                   ),
-                                  imageUrls:
-                                      (_annonces[index]["galeriesPhoto"]
-                                              as List<dynamic>)
-                                          .map<String>(
-                                            (photo) =>
-                                                photo["urlPhoto"] as String,
-                                          )
-                                          .toList(),
-
+                                  imageUrls: _getImageUrls(
+                                    _annonces[index],
+                                  ), // ✅ utilise la fonction
                                   onTap: () {
                                     List<String> amenities = [];
 
@@ -629,6 +637,7 @@ class _HomeContentState extends State<HomeContent> {
                                               .map((e) => e.toString())
                                               .toList();
                                     }
+
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -680,7 +689,6 @@ class _HomeContentState extends State<HomeContent> {
                                                           )
                                                           .toList()
                                                       : <String>[],
-
                                               moyensDePaiement:
                                                   (_annonces[index]["category"]["nom"] ==
                                                               "Santé" &&
@@ -705,16 +713,9 @@ class _HomeContentState extends State<HomeContent> {
                                               description:
                                                   _annonces[index]["descriptionLongue"],
                                               amenities: amenities,
-                                              imageUrls:
-                                                  (_annonces[index]["galeriesPhoto"]
-                                                          as List<dynamic>)
-                                                      .map<String>(
-                                                        (photo) =>
-                                                            photo["urlPhoto"]
-                                                                as String,
-                                                      )
-                                                      .toList(),
-                                              // Add coordinates for the map
+                                              imageUrls: _getImageUrls(
+                                                _annonces[index],
+                                              ), // ✅ encore ici
                                               coordinates: LatLng(
                                                 double.parse(
                                                   _annonces[index]["latitude"]
@@ -724,7 +725,7 @@ class _HomeContentState extends State<HomeContent> {
                                                   _annonces[index]["longitude"]
                                                       .toString(),
                                                 ),
-                                              ), // Marrakech coordinates
+                                              ),
                                             ),
                                       ),
                                     );

@@ -453,6 +453,8 @@ class _ManageDiscoveriesState extends State<ManageDiscoveries> {
     );
   }
 
+  final _formKey = GlobalKey<FormState>();
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -664,197 +666,255 @@ class _ManageDiscoveriesState extends State<ManageDiscoveries> {
                 margin: const EdgeInsets.symmetric(vertical: 16),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _isEditingDiscovery
-                                ? 'Modifier la découverte'
-                                : 'Ajouter une découverte',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          // Close button
-                          IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: _cancelForm,
-                            tooltip: 'Fermer',
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _titleController,
-                        decoration: const InputDecoration(
-                          labelText: 'Titre',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _descriptionController,
-                        decoration: const InputDecoration(
-                          labelText: 'Description',
-                          border: OutlineInputBorder(),
-                        ),
-                        maxLines: 3,
-                      ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<int>(
-                        decoration: const InputDecoration(
-                          labelText: 'Ville',
-                          border: OutlineInputBorder(),
-                        ),
-                        value: _selectedCityId,
-                        items:
-                            _cities.map<DropdownMenuItem<int>>((city) {
-                              return DropdownMenuItem<int>(
-                                value: city['id'],
-                                child: Text(city['nom']),
-                              );
-                            }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCityId = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<int>(
-                        decoration: const InputDecoration(
-                          labelText: 'Catégorie',
-                          border: OutlineInputBorder(),
-                        ),
-                        value: _selectedCategoryId,
-                        items:
-                            _categories.map<DropdownMenuItem<int>>((category) {
-                              return DropdownMenuItem<int>(
-                                value: category['id'],
-                                child: Text(category['nom']),
-                              );
-                            }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCategoryId = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      if (_isEditingDiscovery && _editingDiscoveryId != null)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Image actuelle:'),
-                            const SizedBox(height: 8),
-                            Container(
-                              height: 100,
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(8),
+                            Text(
+                              _isEditingDiscovery
+                                  ? 'Modifier la découverte'
+                                  : 'Ajouter une découverte',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
                               ),
-                              child:
-                                  _discoveries.firstWhere(
+                            ),
+                            // Close button
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: _cancelForm,
+                              tooltip: 'Fermer',
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _titleController,
+                          decoration: const InputDecoration(
+                            labelText: 'Titre',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Veuillez entrer un titre';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _descriptionController,
+                          decoration: const InputDecoration(
+                            labelText: 'Description',
+                            border: OutlineInputBorder(),
+                          ),
+                          maxLines: 3,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Veuillez entrer une description';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<int>(
+                          decoration: const InputDecoration(
+                            labelText: 'Ville',
+                            border: OutlineInputBorder(),
+                          ),
+                          value: _selectedCityId,
+                          items:
+                              _cities.map<DropdownMenuItem<int>>((city) {
+                                return DropdownMenuItem<int>(
+                                  value: city['id'],
+                                  child: Text(city['nom']),
+                                );
+                              }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedCityId = value;
+                            });
+                          },
+                          validator: (value) {
+                            if (value == null) {
+                              return 'Veuillez sélectionner une ville';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<int>(
+                          decoration: const InputDecoration(
+                            labelText: 'Catégorie',
+                            border: OutlineInputBorder(),
+                          ),
+                          value: _selectedCategoryId,
+                          items:
+                              _categories.map<DropdownMenuItem<int>>((
+                                category,
+                              ) {
+                                return DropdownMenuItem<int>(
+                                  value: category['id'],
+                                  child: Text(category['nom']),
+                                );
+                              }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedCategoryId = value;
+                            });
+                          },
+                          validator: (value) {
+                            if (value == null) {
+                              return 'Veuillez sélectionner une catégorie';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        if (_isEditingDiscovery && _editingDiscoveryId != null)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Image actuelle:'),
+                              const SizedBox(height: 8),
+                              Container(
+                                height: 100,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child:
+                                    _discoveries.firstWhere(
+                                              (discovery) =>
+                                                  discovery['id'] ==
+                                                  _editingDiscoveryId,
+                                              orElse: () => {'picto': ''},
+                                            )['picto'] !=
+                                            null
+                                        ? Image.network(
+                                          _discoveries.firstWhere(
                                             (discovery) =>
                                                 discovery['id'] ==
                                                 _editingDiscoveryId,
                                             orElse: () => {'picto': ''},
-                                          )['picto'] !=
-                                          null
-                                      ? Image.network(
-                                        _discoveries.firstWhere(
-                                          (discovery) =>
-                                              discovery['id'] ==
-                                              _editingDiscoveryId,
-                                          orElse: () => {'picto': ''},
-                                        )['picto'],
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (_, __, ___) => const Center(
-                                              child: Icon(
-                                                Icons.image_not_supported,
-                                                size: 50,
-                                                color: Colors.grey,
+                                          )['picto'],
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (_, __, ___) => const Center(
+                                                child: Icon(
+                                                  Icons.image_not_supported,
+                                                  size: 50,
+                                                  color: Colors.grey,
+                                                ),
                                               ),
-                                            ),
-                                      )
-                                      : const Center(
-                                        child: Text('Pas d\'image'),
-                                      ),
+                                        )
+                                        : const Center(
+                                          child: Text('Pas d\'image'),
+                                        ),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                          ),
+                        InkWell(
+                          onTap: _pickImage,
+                          child: Container(
+                            height: 150,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            const SizedBox(height: 16),
+                            child:
+                                _selectedImage != null
+                                    ? Image.file(
+                                      _selectedImage!,
+                                      fit: BoxFit.cover,
+                                    )
+                                    : Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.add_photo_alternate,
+                                          size: 50,
+                                          color: Colors.grey,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          _isEditingDiscovery
+                                              ? 'Nouvelle image (optionnel)'
+                                              : 'Sélectionner une image',
+                                        ),
+                                      ],
+                                    ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: _cancelForm,
+                              child: const Text(
+                                'Annuler',
+                                style: const TextStyle(color: Colors.pink),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            ElevatedButton(
+                              onPressed: () {
+                                if (_formKey.currentState!.validate()) {
+                                  // ✅ Vérification supplémentaire pour l'image si on ajoute
+                                  if (!_isEditingDiscovery &&
+                                      _selectedImage == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          "Veuillez sélectionner une image.",
+                                        ),
+                                      ),
+                                    );
+                                    return; // ❌ Stoppe l'ajout
+                                  }
+
+                                  // ✅ tous les champs obligatoires sont remplis
+                                  if (_isEditingDiscovery &&
+                                      _editingDiscoveryId != null) {
+                                    _updateDiscovery(_editingDiscoveryId!);
+                                  } else {
+                                    _addDiscovery();
+                                  }
+                                  // 🔽 Fermer le clavier
+                                  FocusScope.of(context).unfocus();
+                                } else {
+                                  // ❌ au moins un champ est vide → erreur affichée en rouge
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Veuillez corriger les erreurs.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.pink,
+                              ),
+                              child: Text(
+                                _isEditingDiscovery ? 'Enregistrer' : 'Ajouter',
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ),
                           ],
                         ),
-                      InkWell(
-                        onTap: _pickImage,
-                        child: Container(
-                          height: 150,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child:
-                              _selectedImage != null
-                                  ? Image.file(
-                                    _selectedImage!,
-                                    fit: BoxFit.cover,
-                                  )
-                                  : Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(
-                                        Icons.add_photo_alternate,
-                                        size: 50,
-                                        color: Colors.grey,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        _isEditingDiscovery
-                                            ? 'Nouvelle image (optionnel)'
-                                            : 'Sélectionner une image',
-                                      ),
-                                    ],
-                                  ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: _cancelForm,
-                            child: const Text(
-                              'Annuler',
-                              style: const TextStyle(color: Colors.pink),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          ElevatedButton(
-                            onPressed: () {
-                              if (_isEditingDiscovery &&
-                                  _editingDiscoveryId != null) {
-                                _updateDiscovery(_editingDiscoveryId!);
-                              } else {
-                                _addDiscovery();
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.pink,
-                            ),
-                            child: Text(
-                              _isEditingDiscovery ? 'Enregistrer' : 'Ajouter',
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

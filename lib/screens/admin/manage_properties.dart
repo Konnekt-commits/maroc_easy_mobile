@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:maroceasy/widgets/adressField.dart';
 import 'package:maroceasy/widgets/category_form_type.dart';
 import 'package:maroceasy/widgets/loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -1511,6 +1513,48 @@ class _ManagePropertiesState extends State<ManageProperties> {
     }).toList();
   }
 
+  Future<void> _updateCoordinatesFromAddress(String address) async {
+    if (address.isEmpty) return;
+
+    final url = Uri.parse(
+      'https://nominatim.openstreetmap.org/search?q=$address&format=json&limit=1',
+    );
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          "User-Agent": "MyFlutterApp/1.0 (yvesconstant.ateba@gmail.com)",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print("okay");
+        final data = json.decode(response.body);
+        print(data);
+        if (data.isNotEmpty) {
+          double lat = double.parse(data[0]['lat']);
+          double lon = double.parse(data[0]['lon']);
+
+          print(lon);
+          setState(() {
+            _selectedLocation = LatLng(lat, lon);
+            _latitudeController.text = lat.toString();
+            _longitudeController.text = lon.toString();
+            _updateMarker();
+            _mapController!.move(_selectedLocation, 15.0);
+          });
+        }
+      }
+    } catch (e) {
+      print("Erreur géocodage: $e");
+    }
+  }
+
+  Timer? _timer;
+
+  final _formKey = GlobalKey<FormState>();
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -1780,390 +1824,391 @@ class _ManagePropertiesState extends State<ManageProperties> {
                     margin: const EdgeInsets.symmetric(vertical: 16),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                _isEditingProperty
-                                    ? 'Modifier la annonce'
-                                    : 'Ajouter une annonce',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              // Close button
-                              IconButton(
-                                icon: const Icon(Icons.close),
-                                onPressed: _cancelForm,
-                                tooltip: 'Fermer',
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Form fields
-                          TextField(
-                            controller: _nameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Nom *',
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _emailController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Email *',
-                                    border: OutlineInputBorder(),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  _isEditingProperty
+                                      ? 'Modifier la annonce'
+                                      : 'Ajouter une annonce',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: TextField(
-                                  controller: _phoneController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Téléphone *',
-                                    border: OutlineInputBorder(),
-                                  ),
+                                // Close button
+                                IconButton(
+                                  icon: const Icon(Icons.close),
+                                  onPressed: _cancelForm,
+                                  tooltip: 'Fermer',
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-
-                          TextField(
-                            controller: _addressController,
-                            decoration: const InputDecoration(
-                              labelText: 'Adresse',
-                              border: OutlineInputBorder(),
+                              ],
                             ),
-                          ),
-                          const SizedBox(height: 16),
+                            const SizedBox(height: 16),
 
-                          TextField(
-                            controller: _websiteController,
-                            decoration: const InputDecoration(
-                              labelText: 'Site Web',
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          Row(
-                            children: [
-                              Expanded(
-                                child: DropdownButtonFormField<int>(
-                                  decoration: const InputDecoration(
-                                    labelText: 'Ville *',
-                                    border: OutlineInputBorder(),
-                                  ),
-                                  value: _selectedCityId,
-                                  items:
-                                      _cities.map<DropdownMenuItem<int>>((
-                                        city,
-                                      ) {
-                                        return DropdownMenuItem<int>(
-                                          value: city['id'],
-                                          child: Text(city['nom']),
-                                        );
-                                      }).toList(),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _selectedCityId = value;
-                                    });
-                                  },
-                                ),
+                            // Form fields
+                            TextFormField(
+                              controller: _nameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Nom *',
+                                border: OutlineInputBorder(),
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: DropdownButtonFormField<int>(
-                                  decoration: const InputDecoration(
-                                    labelText: 'Catégorie *',
-                                    border: OutlineInputBorder(),
-                                  ),
-                                  value: _selectedCategoryId,
-                                  items:
-                                      _categories.map<DropdownMenuItem<int>>((
-                                        category,
-                                      ) {
-                                        return DropdownMenuItem<int>(
-                                          value: category['id'],
-                                          child: Text(category['nom']),
-                                        );
-                                      }).toList(),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _selectedCategoryId = value;
-                                      _onCategoryChanged(_selectedCategoryId);
-                                    });
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _priceController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Prix',
-                                    border: OutlineInputBorder(),
-                                  ),
-                                  keyboardType: TextInputType.number,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Carte pour sélectionner la position
-                          const Text(
-                            'Position sur la carte:',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Veuillez entrer un nom';
+                                }
+                                return null;
+                              },
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            height: 300,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Stack(
-                                children: [
-                                  Container(
-                                    height: 300,
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.grey),
-                                      borderRadius: BorderRadius.circular(12),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _emailController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Email *',
+                                      border: OutlineInputBorder(),
                                     ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Stack(
-                                        children: [
-                                          FlutterMap(
-                                            mapController: _mapController,
-                                            options: MapOptions(
-                                              initialCenter: _selectedLocation,
-                                              initialZoom: 15,
-                                              onTap: (tapPosition, point) {
-                                                setState(() {
-                                                  _selectedLocation = point;
-                                                  _updateMarker();
-                                                  _latitudeController.text =
-                                                      point.latitude.toString();
-                                                  _longitudeController.text =
-                                                      point.longitude
-                                                          .toString();
-                                                  _updateAddressFromCoordinates();
-                                                });
-                                              },
-                                            ),
-                                            children: [
-                                              TileLayer(
-                                                urlTemplate:
-                                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                                userAgentPackageName:
-                                                    'com.konnekt.maroceasy',
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Veuillez entrer un email';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: TextFormField(
+                                    keyboardType: TextInputType.number,
+                                    controller: _phoneController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Téléphone *',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Veuillez entrer un numéro de téléphone';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+
+                            AddressSearchField(
+                              onAddressSelected: (address, lat, lon) {
+                                print("Adresse choisie: $address ($lat,$lon)");
+                                _addressController.text = address;
+                                _updateCoordinatesFromAddress(address);
+                              },
+                            ),
+                            const SizedBox(height: 16),
+
+                            TextField(
+                              controller: _websiteController,
+                              decoration: const InputDecoration(
+                                labelText: 'Site Web',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            DropdownButtonFormField<int>(
+                              decoration: const InputDecoration(
+                                labelText: 'Ville *',
+                                border: OutlineInputBorder(),
+                              ),
+                              value: _selectedCityId,
+                              items:
+                                  _cities.map<DropdownMenuItem<int>>((city) {
+                                    return DropdownMenuItem<int>(
+                                      value: city['id'],
+                                      child: Text(city['nom']),
+                                    );
+                                  }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedCityId = value;
+                                });
+
+                                FocusScope.of(
+                                  context,
+                                ).unfocus(); // baisse le clavier
+                              },
+                              validator: (value) {
+                                if (value == null) {
+                                  return "Veuillez sélectionner une ville";
+                                }
+                                return null; // ✅ pas d'erreur
+                              },
+                            ),
+                            const SizedBox(width: 16),
+                            DropdownButtonFormField<int>(
+                              decoration: const InputDecoration(
+                                labelText: 'Catégorie *',
+                                border: OutlineInputBorder(),
+                              ),
+                              value: _selectedCategoryId,
+                              items:
+                                  _categories.map<DropdownMenuItem<int>>((
+                                    category,
+                                  ) {
+                                    return DropdownMenuItem<int>(
+                                      value: category['id'],
+                                      child: Text(category['nom']),
+                                    );
+                                  }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedCategoryId = value;
+                                  _onCategoryChanged(_selectedCategoryId);
+                                });
+                              },
+                              validator: (value) {
+                                if (value == null) {
+                                  return "Veuillez sélectionner une catégorie";
+                                }
+                                return null; // ✅ pas d'erreur
+                              },
+                            ),
+                            const SizedBox(height: 16),
+
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    keyboardType: TextInputType.number,
+                                    controller: _priceController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Prix *',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Veuillez entrer un prix';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Carte pour sélectionner la position
+                            const Text(
+                              'Position sur la carte:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              height: 300,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Stack(
+                                  children: [
+                                    Container(
+                                      height: 300,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: Colors.grey),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Stack(
+                                          children: [
+                                            FlutterMap(
+                                              mapController: _mapController,
+                                              options: MapOptions(
+                                                initialCenter:
+                                                    _selectedLocation,
+                                                initialZoom: 15,
+                                                onTap: (tapPosition, point) {
+                                                  setState(() {
+                                                    _selectedLocation = point;
+                                                    _updateMarker();
+                                                    _latitudeController.text =
+                                                        point.latitude
+                                                            .toString();
+                                                    _longitudeController.text =
+                                                        point.longitude
+                                                            .toString();
+                                                    _updateAddressFromCoordinates();
+                                                  });
+                                                },
                                               ),
-                                              MarkerLayer(
-                                                markers:
-                                                    _markers
-                                                        .map(
-                                                          (marker) => Marker(
-                                                            point:
-                                                                marker.position,
-                                                            width: 40,
-                                                            height: 40,
-                                                            child: Icon(
-                                                              Icons
-                                                                  .location_pin,
-                                                              color:
-                                                                  Colors.pink,
-                                                              size: 40,
+                                              children: [
+                                                TileLayer(
+                                                  urlTemplate:
+                                                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                                  userAgentPackageName:
+                                                      'com.konnekt.maroceasy',
+                                                ),
+                                                MarkerLayer(
+                                                  markers:
+                                                      _markers
+                                                          .map(
+                                                            (marker) => Marker(
+                                                              point:
+                                                                  marker
+                                                                      .position,
+                                                              width: 40,
+                                                              height: 40,
+                                                              child: Icon(
+                                                                Icons
+                                                                    .location_pin,
+                                                                color:
+                                                                    Colors.pink,
+                                                                size: 40,
+                                                              ),
                                                             ),
-                                                          ),
-                                                        )
-                                                        .toList(),
-                                              ),
-                                            ],
-                                          ),
-                                          Positioned(
-                                            left: 10,
-                                            bottom: 10,
-                                            child: FloatingActionButton(
-                                              mini: true,
-                                              backgroundColor: Colors.white,
-                                              child: Icon(
-                                                Icons.my_location,
-                                                color: Colors.pink,
-                                              ),
-                                              onPressed: _getCurrentLocation,
+                                                          )
+                                                          .toList(),
+                                                ),
+                                              ],
                                             ),
-                                          ),
-                                        ],
+                                            Positioned(
+                                              left: 10,
+                                              bottom: 10,
+                                              child: FloatingActionButton(
+                                                mini: true,
+                                                backgroundColor: Colors.white,
+                                                child: Icon(
+                                                  Icons.my_location,
+                                                  color: Colors.pink,
+                                                ),
+                                                onPressed: _getCurrentLocation,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Champs de latitude et longitude (en lecture seule)
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _latitudeController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Latitude',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    suffixIcon: Icon(Icons.location_on),
-                                  ),
-                                  readOnly: true,
+                                  ],
                                 ),
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _longitudeController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Longitude',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Champs de latitude et longitude (en lecture seule)
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _latitudeController,
+                                    decoration: InputDecoration(
+                                      labelText: 'Latitude',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      suffixIcon: Icon(Icons.location_on),
                                     ),
-                                    suffixIcon: Icon(Icons.location_on),
+                                    readOnly: true,
                                   ),
-                                  readOnly: true,
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-
-                          TextField(
-                            controller: _descriptionController,
-                            decoration: const InputDecoration(
-                              labelText: 'Description',
-                              border: OutlineInputBorder(),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _longitudeController,
+                                    decoration: InputDecoration(
+                                      labelText: 'Longitude',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      suffixIcon: Icon(Icons.location_on),
+                                    ),
+                                    readOnly: true,
+                                  ),
+                                ),
+                              ],
                             ),
-                            maxLines: 4,
-                          ),
-                          const SizedBox(height: 16),
+                            const SizedBox(height: 16),
 
-                          // Add the dynamic category-specific fields
-                          _buildCategorySpecificFields(
-                            _isEditingProperty ? _selectedCategoryId! : 0,
-                          ),
-
-                          /*const SizedBox(height: 16),
-
-                          // Amenities selection
-                          Text(
-                            'Commodités',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children:
-                                _availableAmenities.map((amenity) {
-                                  final isSelected = _selectedAmenities
-                                      .contains(amenity);
-                                  return FilterChip(
-                                    label: Text(amenity),
-                                    selected: isSelected,
-                                    onSelected: (selected) {
-                                      setState(() {
-                                        if (selected) {
-                                          _selectedAmenities.add(amenity);
-                                        } else {
-                                          _selectedAmenities.remove(amenity);
-                                        }
-                                      });
-                                    },
-                                    backgroundColor: Colors.grey[200],
-                                    selectedColor: Colors.pink[100],
-                                    checkmarkColor: Colors.pink,
-                                  );
-                                }).toList(),
-                          ),*/
-                          const SizedBox(height: 24),
-
-                          // Submit button
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              TextButton(
-                                onPressed: _cancelForm,
-                                child: const Text('Annuler'),
+                            TextFormField(
+                              controller: _descriptionController,
+                              decoration: const InputDecoration(
+                                labelText: 'Description *',
+                                border: OutlineInputBorder(),
                               ),
-                              const SizedBox(width: 16),
-                              ElevatedButton(
-                                onPressed:
-                                    (_emailController.text.isEmpty ||
-                                            _phoneController.text.isEmpty ||
-                                            _selectedCityId == null ||
-                                            _selectedCategoryId == null ||
-                                            _nameController.text.isEmpty ||
-                                            _addressController.text.isEmpty ||
-                                            _latitudeController.text.isEmpty ||
-                                            _longitudeController.text.isEmpty ||
-                                            _descriptionController
-                                                .text
-                                                .isEmpty ||
-                                            _priceController.text.isEmpty)
-                                        ? () => ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Veillez remplir tous les champs obligatoires.',
-                                            ),
+                              maxLines: 4,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Veuillez entrer une description';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Add the dynamic category-specific fields
+                            _buildCategorySpecificFields(
+                              _isEditingProperty ? _selectedCategoryId! : 0,
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Submit button
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton(
+                                  onPressed: _cancelForm,
+                                  child: const Text('Annuler'),
+                                ),
+                                const SizedBox(width: 16),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    if (_formKey.currentState!.validate()) {
+                                      // ✅ tous les champs obligatoires sont remplis
+                                      if (_isEditingProperty) {
+                                        _updateProperty(_editingPropertyId!);
+                                      } else {
+                                        _addProperty();
+                                      }
+                                      // 🔽 Fermer le clavier
+                                      FocusScope.of(context).unfocus();
+                                    } else {
+                                      // ❌ au moins un champ est vide → erreur affichée en rouge
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Veillez remplir tous les champs obligatoires.',
                                           ),
-                                        )
-                                        : _isEditingProperty
-                                        ? () =>
-                                            _updateProperty(_editingPropertyId!)
-                                        : _addProperty,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.pink,
-                                  foregroundColor: Colors.white,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.pink,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  child: Text(
+                                    _isEditingProperty
+                                        ? 'Mettre à jour'
+                                        : 'Ajouter',
+                                  ),
                                 ),
-                                child: Text(
-                                  _isEditingProperty
-                                      ? 'Mettre à jour'
-                                      : 'Ajouter',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
