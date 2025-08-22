@@ -25,7 +25,7 @@ class _AddressSearchFieldState extends State<AddressSearchField> {
     }
 
     final url = Uri.parse(
-      "https://nominatim.openstreetmap.org/search?q=$query&format=json&addressdetails=1&limit=5&accept-language=fr",
+      "https://nominatim.openstreetmap.org/search?q=$query&format=json&addressdetails=1&limit=5&accept-language=fr&countrycodes=MA",
     );
 
     final response = await http.get(
