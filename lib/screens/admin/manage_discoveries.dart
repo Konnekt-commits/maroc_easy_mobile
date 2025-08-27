@@ -300,7 +300,7 @@ class _ManageDiscoveriesState extends State<ManageDiscoveries> {
   void _showEditDiscoveryForm(Map<String, dynamic> discovery) {
     _titleController.text = discovery['titre'] ?? '';
     _descriptionController.text = discovery['description'] ?? '';
-    _annonceController.text = discovery['annonce']['nom'] ?? '';
+    _annonceController.text = '${discovery['annonce']['nom'] ?? ''}';
     _selectedAnnonceId = discovery['annonce']['id'] ?? '';
     _selectedImage = null;
 
@@ -832,9 +832,14 @@ class _ManageDiscoveriesState extends State<ManageDiscoveries> {
                         ),
                         const SizedBox(height: 16),
                         AnnonceSearchField(
+                          ville: _selectedCityId ?? -1,
+                          category: _selectedCategoryId ?? -1,
                           controller: _annonceController,
                           onSelected: (id, title) {
                             _annonceController.text = title;
+                            setState(() {
+                              _selectedAnnonceId = id;
+                            });
                             print(
                               "Annonce sélectionnée → id: $id, titre: $title",
                             );

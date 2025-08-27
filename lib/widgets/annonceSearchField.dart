@@ -6,12 +6,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AnnonceSearchField extends StatefulWidget {
   final TextEditingController controller;
+  final int ville;
+  final int category;
   final void Function(int id, String title)
   onSelected; // callback quand on choisit
   AnnonceSearchField({
     Key? key,
     required this.onSelected,
     required this.controller,
+    required this.ville,
+    required this.category,
   }) : super(key: key);
 
   @override
@@ -28,10 +32,13 @@ class _AnnonceSearchFieldState extends State<AnnonceSearchField> {
     final token = prefs.getString('token');
     final userDataString = prefs.getString('userData');
     final userData = json.decode(userDataString!);
+    String villeParam = widget.ville != -1 ? '&ville.id=${widget.ville}' : '';
+    String categoryParam =
+        widget.category != -1 ? '&category.id=${widget.category}' : '';
 
     final response = await http.get(
       Uri.parse(
-        'https://maroceasy.konnekt.fr/api/annonces?user.id=${userData['id']}&nom=$query',
+        'https://maroceasy.konnekt.fr/api/annonces?user.id=${userData['id']}&nom=$query$villeParam$categoryParam',
       ),
       headers: {
         'Authorization': 'Bearer $token',
