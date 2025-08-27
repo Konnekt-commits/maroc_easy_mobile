@@ -165,7 +165,114 @@ class _HomeContentState extends State<HomeContent> {
                       Spacer(),
 
                       ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          List<String> amenities = [];
+
+                          if (_decouvertes[index]['annonce']["category"]["nom"] ==
+                              "Voiture") {
+                            final comodites =
+                                (_decouvertes[index]['annonce']["comodites"] ??
+                                        [])
+                                    as List;
+                            final services =
+                                (_decouvertes[index]['annonce']["services"] ??
+                                        [])
+                                    as List;
+
+                            amenities =
+                                [
+                                  ...comodites,
+                                  ...services,
+                                ].map((e) => e.toString()).toList();
+                          } else {
+                            amenities =
+                                ((_decouvertes[index]['annonce']["comodites"] ??
+                                            [])
+                                        as List)
+                                    .map((e) => e.toString())
+                                    .toList();
+                          }
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => PropertyDetailPage(
+                                    type:
+                                        _decouvertes[index]['annonce']["category"]["nom"],
+                                    horaires:
+                                        ((_decouvertes[index]['annonce']["category"]["nom"] ==
+                                                        "Santé" ||
+                                                    _decouvertes[index]['annonce']["category"]["nom"] ==
+                                                        "Shopping" ||
+                                                    _decouvertes[index]['annonce']["category"]["nom"] ==
+                                                        "Restaurant") &&
+                                                _decouvertes[index]['annonce']["horaires"] !=
+                                                    null &&
+                                                _decouvertes[index]['annonce']["horaires"]
+                                                    is Map<String, dynamic>)
+                                            ? (_decouvertes[index]['annonce']["horaires"]
+                                                as Map<String, dynamic>)
+                                            : <String, dynamic>{},
+                                    services:
+                                        (_decouvertes[index]['annonce']["category"]["nom"] ==
+                                                    "Santé" &&
+                                                _decouvertes[index]['annonce']["services"] !=
+                                                    null)
+                                            ? (_decouvertes[index]['annonce']["services"]
+                                                    as List)
+                                                .map((e) => e.toString())
+                                                .toList()
+                                            : <String>[],
+                                    langues:
+                                        (_decouvertes[index]['annonce']["category"]["nom"] ==
+                                                    "Santé" &&
+                                                _decouvertes[index]['annonce']["langues"] !=
+                                                    null)
+                                            ? (_decouvertes[index]['annonce']["langues"]
+                                                    as List)
+                                                .map((e) => e.toString())
+                                                .toList()
+                                            : <String>[],
+                                    moyensDePaiement:
+                                        (_decouvertes[index]['annonce']["category"]["nom"] ==
+                                                    "Santé" &&
+                                                _decouvertes[index]['annonce']["moyensPaiement"] !=
+                                                    null)
+                                            ? (_decouvertes[index]['annonce']["moyensPaiement"]
+                                                    as List)
+                                                .map((e) => e.toString())
+                                                .toList()
+                                            : <String>[],
+                                    id: _decouvertes[index]['annonce']["id"],
+                                    phone:
+                                        _decouvertes[index]['annonce']["telephone"],
+                                    title:
+                                        _decouvertes[index]['annonce']["nom"],
+                                    location:
+                                        _decouvertes[index]['annonce']["adresse"],
+                                    price:
+                                        '${_decouvertes[index]['annonce']["prix"]}€',
+                                    rating: 4.5,
+                                    description:
+                                        _decouvertes[index]['annonce']["descriptionLongue"],
+                                    amenities: amenities,
+                                    imageUrls: _getImageUrls(
+                                      _decouvertes[index]['annonce'],
+                                    ), // ✅ encore ici
+                                    coordinates: LatLng(
+                                      double.parse(
+                                        _decouvertes[index]['annonce']["latitude"]
+                                            .toString(),
+                                      ),
+                                      double.parse(
+                                        _decouvertes[index]['annonce']["longitude"]
+                                            .toString(),
+                                      ),
+                                    ),
+                                  ),
+                            ),
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: Colors.black,

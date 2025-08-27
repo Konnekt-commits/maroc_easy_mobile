@@ -4,6 +4,7 @@ import 'package:maroceasy/screens/admin/manage_discoveries.dart';
 import 'package:maroceasy/screens/admin/manage_properties.dart';
 import 'package:maroceasy/screens/admin/manage_reviews.dart';
 import 'package:maroceasy/screens/admin/manage_categories.dart';
+import 'package:maroceasy/screens/admin/professional_listt.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({Key? key}) : super(key: key);
@@ -19,7 +20,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     const ManageCities(),
     const ManageDiscoveries(),
     const ManageProperties(),
-    // const ManageReviews(),
+    const ManageProfessionals(),
     const ManageCategories(),
   ];
 
@@ -27,7 +28,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     'Gestion des villes',
     'Gestion des découvertes',
     'Gestion des annonces',
-    // 'Gestion des avis',
+    'Gestion des professionnels',
     'Gestion des catégories',
   ];
 
@@ -102,6 +103,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
           BottomNavigationBarItem(
             icon: Icon(Icons.campaign),
             label: 'Annonces',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.work),
+            label: 'Professionnels',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.category),

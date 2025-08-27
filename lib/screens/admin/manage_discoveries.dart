@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:maroceasy/widgets/annonceSearchField.dart';
 import 'package:maroceasy/widgets/loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
@@ -20,6 +21,7 @@ class _ManageDiscoveriesState extends State<ManageDiscoveries> {
   List<dynamic> _categories = []; // Added categories list
   bool _isLoading = true;
   String _searchQuery = '';
+  String _searchQueryAnnonce = '';
   bool _isAddingDiscovery = false;
   bool _isEditingDiscovery = false;
   int? _editingDiscoveryId;
@@ -27,9 +29,11 @@ class _ManageDiscoveriesState extends State<ManageDiscoveries> {
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _annonceController = TextEditingController();
   int? _selectedCityId;
   int? _selectedCategoryId; // Added category selection
   File? _selectedImage;
+  int? _selectedAnnonceId;
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -105,6 +109,52 @@ class _ManageDiscoveriesState extends State<ManageDiscoveries> {
       }
     } catch (e) {
       if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  Future<void> _fetchAnnonces() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        throw Exception('Not authenticated');
+      }
+
+      final response = await http.get(
+        Uri.parse(
+          'https://maroceasy.konnekt.fr/api/annonces?page=1&nom=$_searchQueryAnnonce',
+        ),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      } else if (response.statusCode == 401) {
+      } else {
+        throw Exception('Failed to load properties');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -250,6 +300,8 @@ class _ManageDiscoveriesState extends State<ManageDiscoveries> {
   void _showEditDiscoveryForm(Map<String, dynamic> discovery) {
     _titleController.text = discovery['titre'] ?? '';
     _descriptionController.text = discovery['description'] ?? '';
+    _annonceController.text = discovery['annonce']['nom'] ?? '';
+    _selectedAnnonceId = discovery['annonce']['id'] ?? '';
     _selectedImage = null;
 
     // Extract city ID from IRI
@@ -284,6 +336,7 @@ class _ManageDiscoveriesState extends State<ManageDiscoveries> {
   Future<void> _addDiscovery() async {
     if (_titleController.text.isEmpty ||
         _descriptionController.text.isEmpty ||
+        _annonceController.text.isEmpty ||
         _selectedCityId == null ||
         _selectedCategoryId == null ||
         _selectedImage == null) {
@@ -318,6 +371,7 @@ class _ManageDiscoveriesState extends State<ManageDiscoveries> {
       request.fields['description'] = _descriptionController.text;
       request.fields['ville'] = '/api/villes/$_selectedCityId';
       request.fields['category'] = '/api/categories/$_selectedCategoryId';
+      request.fields['annonce'] = '/api/annonces/$_selectedAnnonceId';
 
       // Add file
       var imageFile = await http.MultipartFile.fromPath(
@@ -354,6 +408,7 @@ class _ManageDiscoveriesState extends State<ManageDiscoveries> {
   Future<void> _updateDiscovery(int discoveryId) async {
     if (_titleController.text.isEmpty ||
         _descriptionController.text.isEmpty ||
+        _annonceController.text.isEmpty ||
         _selectedCityId == null ||
         _selectedCategoryId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -387,6 +442,7 @@ class _ManageDiscoveriesState extends State<ManageDiscoveries> {
       request.fields['description'] = _descriptionController.text;
       request.fields['ville'] = '/api/villes/$_selectedCityId';
       request.fields['category'] = '/api/categories/$_selectedCategoryId';
+      request.fields['annonce'] = '/api/annonces/$_selectedAnnonceId';
 
       // Add file if selected
       if (_selectedImage != null) {
@@ -772,6 +828,17 @@ class _ManageDiscoveriesState extends State<ManageDiscoveries> {
                               return 'Veuillez sélectionner une catégorie';
                             }
                             return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        AnnonceSearchField(
+                          controller: _annonceController,
+                          onSelected: (id, title) {
+                            _annonceController.text = title;
+                            print(
+                              "Annonce sélectionnée → id: $id, titre: $title",
+                            );
+                            // tu peux stocker l’id dans une variable pour ton backend
                           },
                         ),
                         const SizedBox(height: 16),

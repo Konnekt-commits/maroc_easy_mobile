@@ -50,6 +50,7 @@ dependencies:
   location: ^5.0.3
   geocoding: ^2.1.1
   shimmer: ^3.0.0
+  flutter_typeahead: ^5.2.0
 
 dev_dependencies:
   flutter_test:
