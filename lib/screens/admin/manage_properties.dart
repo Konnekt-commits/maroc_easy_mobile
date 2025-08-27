@@ -1951,7 +1951,7 @@ class _ManagePropertiesState extends State<ManageProperties> {
                                 return null; // ✅ pas d'erreur
                               },
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(height: 16),
                             DropdownButtonFormField<int>(
                               decoration: const InputDecoration(
                                 labelText: 'Catégorie *',
