@@ -65,11 +65,11 @@ class _RegisterPageState extends State<RegisterPage> {
         AndroidUiSettings(
           cropStyle: CropStyle.circle,
           toolbarTitle: 'Recadrage Photo',
-          toolbarColor: Colors.pink,
+          toolbarColor: Theme.of(context).colorScheme.primary,
           toolbarWidgetColor: Colors.white,
           initAspectRatio: CropAspectRatioPreset.original,
           lockAspectRatio: true,
-          activeControlsWidgetColor: Colors.pink,
+          activeControlsWidgetColor: Theme.of(context).colorScheme.primary,
           hideBottomControls: false,
         ),
         IOSUiSettings(
@@ -280,7 +280,10 @@ class _RegisterPageState extends State<RegisterPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(
+            Icons.arrow_back,
+            color: Theme.of(context).colorScheme.onSecondary,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -327,7 +330,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             child: Container(
                               padding: EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: Colors.pink,
+                                color: Theme.of(context).colorScheme.primary,
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -445,13 +448,15 @@ class _RegisterPageState extends State<RegisterPage> {
                             decoration: BoxDecoration(
                               color:
                                   _selectedRole == 'ROLE_USER'
-                                      ? Colors.pink.withOpacity(0.1)
+                                      ? Theme.of(
+                                        context,
+                                      ).colorScheme.primary.withOpacity(0.1)
                                       : Colors.grey.withOpacity(0.05),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color:
                                     _selectedRole == 'ROLE_USER'
-                                        ? Colors.pink
+                                        ? Theme.of(context).colorScheme.primary
                                         : Colors.grey.withOpacity(0.3),
                                 width: 1.5,
                               ),
@@ -462,7 +467,9 @@ class _RegisterPageState extends State<RegisterPage> {
                                   Icons.person,
                                   color:
                                       _selectedRole == 'ROLE_USER'
-                                          ? Colors.pink
+                                          ? Theme.of(
+                                            context,
+                                          ).colorScheme.primary
                                           : Colors.grey,
                                   size: 28,
                                 ),
@@ -472,8 +479,12 @@ class _RegisterPageState extends State<RegisterPage> {
                                   style: TextStyle(
                                     color:
                                         _selectedRole == 'ROLE_USER'
-                                            ? Colors.pink
-                                            : Colors.black87,
+                                            ? Theme.of(
+                                              context,
+                                            ).colorScheme.primary
+                                            : Theme.of(
+                                              context,
+                                            ).colorScheme.onSecondary,
                                     fontWeight:
                                         _selectedRole == 'ROLE_USER'
                                             ? FontWeight.bold
@@ -498,13 +509,15 @@ class _RegisterPageState extends State<RegisterPage> {
                             decoration: BoxDecoration(
                               color:
                                   _selectedRole == 'ROLE_PROFESSIONAL'
-                                      ? Colors.pink.withOpacity(0.1)
+                                      ? Theme.of(
+                                        context,
+                                      ).colorScheme.primary.withOpacity(0.1)
                                       : Colors.grey.withOpacity(0.05),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color:
                                     _selectedRole == 'ROLE_PROFESSIONAL'
-                                        ? Colors.pink
+                                        ? Theme.of(context).colorScheme.primary
                                         : Colors.grey.withOpacity(0.3),
                                 width: 1.5,
                               ),
@@ -515,7 +528,9 @@ class _RegisterPageState extends State<RegisterPage> {
                                   Icons.business_center,
                                   color:
                                       _selectedRole == 'ROLE_PROFESSIONAL'
-                                          ? Colors.pink
+                                          ? Theme.of(
+                                            context,
+                                          ).colorScheme.primary
                                           : Colors.grey,
                                   size: 28,
                                 ),
@@ -525,8 +540,12 @@ class _RegisterPageState extends State<RegisterPage> {
                                   style: TextStyle(
                                     color:
                                         _selectedRole == 'ROLE_PROFESSIONAL'
-                                            ? Colors.pink
-                                            : Colors.black87,
+                                            ? Theme.of(
+                                              context,
+                                            ).colorScheme.primary
+                                            : Theme.of(
+                                              context,
+                                            ).colorScheme.onSecondary,
                                     fontWeight:
                                         _selectedRole == 'ROLE_PROFESSIONAL'
                                             ? FontWeight.bold
@@ -646,7 +665,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             _acceptTerms = value ?? false;
                           });
                         },
-                        activeColor: Colors.pink,
+                        activeColor: Theme.of(context).colorScheme.primary,
                       ),
                       Expanded(
                         child: Text(
@@ -662,7 +681,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ElevatedButton(
                     onPressed: _isLoading ? null : _register,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.pink,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -695,7 +714,9 @@ class _RegisterPageState extends State<RegisterPage> {
                         },
                         child: Text(
                           'Se connecter',
-                          style: TextStyle(color: Colors.pink),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                         ),
                       ),
                     ],

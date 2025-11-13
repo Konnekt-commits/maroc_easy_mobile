@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
@@ -693,15 +694,11 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
   }
 
   List<Widget> _buildPaginationPages() {
-    if (totalPages <= 0) {
-      return []; // rien à afficher
-    }
-
     const int maxVisiblePages = 5;
     List<Widget> widgets = [];
 
-    int startPage = (currentPage - 2).clamp(1, totalPages).toInt();
-    int endPage = (currentPage + 2).clamp(1, totalPages).toInt();
+    int startPage = (currentPage - 2).clamp(1, totalPages);
+    int endPage = (currentPage + 2).clamp(1, totalPages);
 
     if (startPage > 1) {
       widgets.add(_buildPageButton(1));
@@ -741,7 +738,10 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: TextButton(
         style: TextButton.styleFrom(
-          backgroundColor: isSelected ? Colors.pink : Colors.transparent,
+          backgroundColor:
+              isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.transparent,
           foregroundColor: isSelected ? Colors.white : Colors.black,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
@@ -751,7 +751,10 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
             _fetchProperties();
           });
         },
-        child: Text('$page'),
+        child: Text(
+          '$page',
+          style: TextStyle(color: Theme.of(context).colorScheme.onSecondary),
+        ),
       ),
     );
   }
@@ -1073,9 +1076,11 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
-                child: const Text(
+                child: Text(
                   'Annuler',
-                  style: TextStyle(color: Colors.pink),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               ),
               ElevatedButton(
@@ -1085,7 +1090,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                 },
                 style: ButtonStyle(
                   backgroundColor: MaterialStateProperty.all<Color>(
-                    Colors.pink,
+                    Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 child: const Text(
@@ -1263,7 +1268,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
           _fetchProperties();
           _cancelForm();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Propriété ajoutée avec succès')),
+            const SnackBar(content: Text('annonce ajoutée avec succès')),
           );
         }
       } else if (response.statusCode == 401) {
@@ -1407,7 +1412,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
           _fetchProperties();
           _cancelForm();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Propriété modifiée avec succès')),
+            const SnackBar(content: Text('annonce modifiée avec succès')),
           );
         }
       } else if (response.statusCode == 401) {
@@ -1446,7 +1451,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
         if (mounted) {
           _fetchProperties();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Propriété supprimée avec succès')),
+            const SnackBar(content: Text('annonce supprimée avec succès')),
           );
         }
       } else if (response.statusCode == 401) {
@@ -1477,9 +1482,11 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
-                child: const Text(
+                child: Text(
                   'Annuler',
-                  style: TextStyle(color: Colors.pink),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               ),
               ElevatedButton(
@@ -1488,7 +1495,9 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                   _deleteProperty(property['id']);
                 },
                 style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all(Colors.pink),
+                  backgroundColor: MaterialStateProperty.all(
+                    Theme.of(context).colorScheme.primary,
+                  ),
                 ),
                 child: const Text(
                   'Supprimer',
@@ -1561,827 +1570,1023 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 30),
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary; // 0xFFF1787A
 
-              // Search and add property row
-              Row(
-                children: [
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+    return Scaffold(
+      backgroundColor: theme.colorScheme.background,
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 50),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Search + actions row
+                Row(
+                  children: [
+                    Expanded(
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.grey[200],
                           borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: TextField(
-                          onChanged: (value) {
-                            if (_timer?.isActive ?? false) _timer!.cancel();
-                            _timer = Timer(const Duration(seconds: 1), () {
-                              setState(() {
-                                _searchQuery = value;
-                                _fetchProperties();
-                              });
-                            });
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'Rechercher une annonce...',
-                            prefixIcon: const Icon(Icons.search),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add),
-                    onPressed: _toggleAddPropertyForm,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.pink,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: _fetchProperties,
-                    tooltip: 'Rafraîchir',
-                  ),
-                ],
-              ),
-
-              Visibility(
-                visible: totalPages > 1,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Flèche gauche
-                      IconButton(
-                        icon: const Icon(Icons.chevron_left),
-                        onPressed:
-                            currentPage > 1
-                                ? () {
-                                  setState(() {
-                                    currentPage--;
-                                    _fetchProperties();
-                                  });
-                                }
-                                : null,
-                      ),
-
-                      // Numéros de pages avec "..."
-                      ..._buildPaginationPages(),
-
-                      // Flèche droite
-                      IconButton(
-                        icon: const Icon(Icons.chevron_right),
-                        onPressed:
-                            currentPage < totalPages
-                                ? () {
-                                  setState(() {
-                                    currentPage++;
-                                    _fetchProperties();
-                                  });
-                                }
-                                : null,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Properties list
-              Expanded(
-                child:
-                    _isLoading
-                        ? Center(
-                          child: ListView.builder(
-                            itemCount: 4,
-                            itemBuilder: (context, index) => LoaderAnnonce(),
-                          ),
-                        )
-                        : _properties.isEmpty
-                        ? const Center(child: Text('Aucune propriété trouvée'))
-                        : ListView.builder(
-                          itemCount: _properties.length,
-                          itemBuilder: (context, index) {
-                            final property = _properties[index];
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Add image carousel if property has images
-                                    if (property['galeriesPhoto'] != null &&
-                                        (property['galeriesPhoto'] as List)
-                                            .isNotEmpty)
-                                      _buildImageCarousel(
-                                        property['galeriesPhoto'],
-                                      ),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            property['nom'] ?? 'Sans nom',
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                        if (property['prix'] != null)
-                                          Text(
-                                            '${property['prix']} MAD',
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.pink,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        if (property['ville'] != null)
-                                          Row(
-                                            children: [
-                                              const Icon(
-                                                Icons.location_on,
-                                                size: 16,
-                                                color: Colors.grey,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                property['ville']['nom'],
-                                                style: TextStyle(
-                                                  color: Colors.grey[600],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        const SizedBox(width: 16),
-                                        if (property['category'] != null)
-                                          Row(
-                                            children: [
-                                              const Icon(
-                                                Icons.category,
-                                                size: 16,
-                                                color: Colors.grey,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                property['category']['nom'],
-                                                style: TextStyle(
-                                                  color: Colors.grey[600],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    if (property['adresse'] != null &&
-                                        property['adresse'].isNotEmpty)
-                                      Text(
-                                        property['adresse'],
-                                        style: TextStyle(
-                                          color: Colors.grey[700],
-                                        ),
-                                      ),
-                                    const SizedBox(height: 8),
-                                    if (property['descriptionLongue'] != null)
-                                      Text(
-                                        property['descriptionLongue'],
-                                        maxLines: 3,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    const SizedBox(height: 8),
-
-                                    // Display category-specific information
-                                    _buildCategorySpecificInfo(property),
-                                    const SizedBox(height: 16),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.add_photo_alternate,
-                                            color: Colors.green,
-                                          ),
-                                          onPressed: () {
-                                            _uploadImage(property['id']);
-                                          },
-                                          tooltip: 'Ajouter une image',
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.edit,
-                                            color: Colors.blue,
-                                          ),
-                                          onPressed: () {
-                                            _showEditPropertyForm(property);
-                                          },
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.delete,
-                                            color: Colors.red,
-                                          ),
-                                          onPressed: () {
-                                            _showDeleteConfirmation(property);
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-              ),
-            ],
-          ),
-        ),
-        // Invisible overlay to detect taps outside the form
-        if (_isAddingProperty || _isEditingProperty)
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: _cancelForm,
-              child: Container(color: Colors.black.withOpacity(0.3)),
-            ),
-          ),
-
-        // Form that slides up from bottom
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: Stack(
-            children: [
-              // Animated form container
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 500),
-                height: _formHeight,
-                curve: Curves.easeInOut,
-                child: SingleChildScrollView(
-                  child: Card(
-                    margin: const EdgeInsets.symmetric(vertical: 16),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  _isEditingProperty
-                                      ? 'Modifier la annonce'
-                                      : 'Ajouter une annonce',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                // Close button
-                                IconButton(
-                                  icon: const Icon(Icons.close),
-                                  onPressed: _cancelForm,
-                                  tooltip: 'Fermer',
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Form fields
-                            TextFormField(
-                              controller: _nameController,
-                              decoration: const InputDecoration(
-                                labelText: 'Nom *',
-                                border: OutlineInputBorder(),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Veuillez entrer un nom';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _emailController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Email *',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Veuillez entrer un email';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: TextFormField(
-                                    keyboardType: TextInputType.number,
-                                    controller: _phoneController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Téléphone *',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Veuillez entrer un numéro de téléphone';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-
-                            AddressSearchField(
-                              onAddressSelected: (address, lat, lon) {
-                                print("Adresse choisie: $address ($lat,$lon)");
-                                _addressController.text = address;
-                                _updateCoordinatesFromAddress(address);
-                              },
-                            ),
-                            const SizedBox(height: 16),
-
-                            TextField(
-                              controller: _websiteController,
-                              decoration: const InputDecoration(
-                                labelText: 'Site Web',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-
-                            DropdownButtonFormField<int>(
-                              decoration: const InputDecoration(
-                                labelText: 'Ville *',
-                                border: OutlineInputBorder(),
-                              ),
-                              value: _selectedCityId,
-                              items:
-                                  _cities.map<DropdownMenuItem<int>>((city) {
-                                    return DropdownMenuItem<int>(
-                                      value: city['id'],
-                                      child: Text(city['nom']),
-                                    );
-                                  }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedCityId = value;
-                                });
-
-                                FocusScope.of(
-                                  context,
-                                ).unfocus(); // baisse le clavier
-                              },
-                              validator: (value) {
-                                if (value == null) {
-                                  return "Veuillez sélectionner une ville";
-                                }
-                                return null; // ✅ pas d'erreur
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            DropdownButtonFormField<int>(
-                              decoration: const InputDecoration(
-                                labelText: 'Catégorie *',
-                                border: OutlineInputBorder(),
-                              ),
-                              value: _selectedCategoryId,
-                              items:
-                                  _categories.map<DropdownMenuItem<int>>((
-                                    category,
-                                  ) {
-                                    return DropdownMenuItem<int>(
-                                      value: category['id'],
-                                      child: Text(category['nom']),
-                                    );
-                                  }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedCategoryId = value;
-                                  _onCategoryChanged(_selectedCategoryId);
-                                });
-                              },
-                              validator: (value) {
-                                if (value == null) {
-                                  return "Veuillez sélectionner une catégorie";
-                                }
-                                return null; // ✅ pas d'erreur
-                              },
-                            ),
-                            const SizedBox(height: 16),
-
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    keyboardType: TextInputType.number,
-                                    controller: _priceController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Prix *',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Veuillez entrer un prix';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Carte pour sélectionner la position
-                            const Text(
-                              'Position sur la carte:',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Container(
-                              height: 300,
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Stack(
-                                  children: [
-                                    Container(
-                                      height: 300,
-                                      decoration: BoxDecoration(
-                                        border: Border.all(color: Colors.grey),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(12),
-                                        child: Stack(
-                                          children: [
-                                            FlutterMap(
-                                              mapController: _mapController,
-                                              options: MapOptions(
-                                                initialCenter:
-                                                    _selectedLocation,
-                                                initialZoom: 15,
-                                                onTap: (tapPosition, point) {
-                                                  setState(() {
-                                                    _selectedLocation = point;
-                                                    _updateMarker();
-                                                    _latitudeController.text =
-                                                        point.latitude
-                                                            .toString();
-                                                    _longitudeController.text =
-                                                        point.longitude
-                                                            .toString();
-                                                    _updateAddressFromCoordinates();
-                                                  });
-                                                },
-                                              ),
-                                              children: [
-                                                TileLayer(
-                                                  urlTemplate:
-                                                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                                  userAgentPackageName:
-                                                      'com.konnekt.maroceasy',
-                                                ),
-                                                MarkerLayer(
-                                                  markers:
-                                                      _markers
-                                                          .map(
-                                                            (marker) => Marker(
-                                                              point:
-                                                                  marker
-                                                                      .position,
-                                                              width: 40,
-                                                              height: 40,
-                                                              child: Icon(
-                                                                Icons
-                                                                    .location_pin,
-                                                                color:
-                                                                    Colors.pink,
-                                                                size: 40,
-                                                              ),
-                                                            ),
-                                                          )
-                                                          .toList(),
-                                                ),
-                                              ],
-                                            ),
-                                            Positioned(
-                                              left: 10,
-                                              bottom: 10,
-                                              child: FloatingActionButton(
-                                                mini: true,
-                                                backgroundColor: Colors.white,
-                                                child: Icon(
-                                                  Icons.my_location,
-                                                  color: Colors.pink,
-                                                ),
-                                                onPressed: _getCurrentLocation,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Champs de latitude et longitude (en lecture seule)
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _latitudeController,
-                                    decoration: InputDecoration(
-                                      labelText: 'Latitude',
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      suffixIcon: Icon(Icons.location_on),
-                                    ),
-                                    readOnly: true,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _longitudeController,
-                                    decoration: InputDecoration(
-                                      labelText: 'Longitude',
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      suffixIcon: Icon(Icons.location_on),
-                                    ),
-                                    readOnly: true,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-
-                            TextFormField(
-                              controller: _descriptionController,
-                              decoration: const InputDecoration(
-                                labelText: 'Description *',
-                                border: OutlineInputBorder(),
-                              ),
-                              maxLines: 4,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Veuillez entrer une description';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Add the dynamic category-specific fields
-                            _buildCategorySpecificFields(
-                              _isEditingProperty ? _selectedCategoryId! : 0,
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Submit button
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                TextButton(
-                                  onPressed: _cancelForm,
-                                  child: const Text('Annuler'),
-                                ),
-                                const SizedBox(width: 16),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    if (_formKey.currentState!.validate()) {
-                                      // ✅ tous les champs obligatoires sont remplis
-                                      if (_isEditingProperty) {
-                                        _updateProperty(_editingPropertyId!);
-                                      } else {
-                                        _addProperty();
-                                      }
-                                      // 🔽 Fermer le clavier
-                                      FocusScope.of(context).unfocus();
-                                    } else {
-                                      // ❌ au moins un champ est vide → erreur affichée en rouge
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Veillez remplir tous les champs obligatoires.',
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.pink,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  child: Text(
-                                    _isEditingProperty
-                                        ? 'Mettre à jour'
-                                        : 'Ajouter',
-                                  ),
-                                ),
-                              ],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Rechercher une annonce...',
+                            prefixIcon: Icon(Icons.search, color: Colors.grey),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: EdgeInsets.symmetric(vertical: 14),
+                            filled: true,
+                            fillColor: Theme.of(
+                              context,
+                            ).colorScheme.onSecondary.withOpacity(0.05),
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              _searchQuery = value;
+                              _fetchProperties();
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    FloatingActionButton.small(
+                      heroTag: 'fab_add_property',
+                      onPressed: _toggleAddPropertyForm,
+                      backgroundColor:
+                          _isAddingProperty ? Colors.grey : primary,
+                      child: Icon(
+                        _isAddingProperty ? Icons.close : Icons.add,
+                        color: Colors.white,
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    IconButton(
+                      tooltip: 'Rafraîchir',
+                      onPressed: _fetchProperties,
+                      icon: const Icon(Icons.refresh),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Pagination (visible si >1)
+                if (totalPages > 1)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.chevron_left),
+                          onPressed:
+                              currentPage > 1
+                                  ? () {
+                                    setState(() {
+                                      currentPage--;
+                                      _fetchProperties();
+                                    });
+                                  }
+                                  : null,
+                        ),
+                        ..._buildPaginationPages(),
+                        IconButton(
+                          icon: const Icon(Icons.chevron_right),
+                          onPressed:
+                              currentPage < totalPages
+                                  ? () {
+                                    setState(() {
+                                      currentPage++;
+                                      _fetchProperties();
+                                    });
+                                  }
+                                  : null,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // Properties list
+                Expanded(
+                  child:
+                      _isLoading
+                          ? ListView.builder(
+                            itemCount: 4,
+                            itemBuilder:
+                                (context, index) => const Padding(
+                                  padding: EdgeInsets.only(bottom: 12),
+                                  child: LoaderAnnonce(),
+                                ),
+                          )
+                          : _properties.isEmpty
+                          ? const Center(child: Text('Aucune annonce trouvée'))
+                          : ListView.separated(
+                            itemCount: _properties.length,
+                            separatorBuilder:
+                                (_, __) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final property = _properties[index];
+                              final gallery =
+                                  property['galeriesPhoto'] as List?;
+                              final price = property['prix'];
+                              final cityName = property['ville']?['nom'];
+                              final categoryName = property['category']?['nom'];
+
+                              return Card(
+                                elevation: 6,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 2,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Image carousel or placeholder
+                                    if (gallery != null && gallery.isNotEmpty)
+                                      _buildImageCarousel(gallery)
+                                    else
+                                      Container(
+                                        height: 180,
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.onTertiaryContainer,
+                                        child: Center(
+                                          child: Icon(
+                                            Icons.image,
+                                            size: 48,
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.onTertiary,
+                                          ),
+                                        ),
+                                      ),
+
+                                    Padding(
+                                      padding: const EdgeInsets.all(14.0),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  property['nom'] ?? 'Sans nom',
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .titleMedium
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                ),
+                                              ),
+                                              if (price != null)
+                                                Text(
+                                                  '${price} MAD',
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .titleSmall
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color:
+                                                            Theme.of(context)
+                                                                .colorScheme
+                                                                .primary,
+                                                      ),
+                                                ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            children: [
+                                              if (cityName != null) ...[
+                                                Icon(
+                                                  Icons.location_on_outlined,
+                                                  size: 16,
+                                                  color:
+                                                      Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurfaceVariant,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  cityName,
+                                                  style: Theme.of(
+                                                    context,
+                                                  ).textTheme.bodySmall?.copyWith(
+                                                    color:
+                                                        Theme.of(context)
+                                                            .colorScheme
+                                                            .onSurfaceVariant,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                              ],
+                                              if (categoryName != null) ...[
+                                                Icon(
+                                                  Icons.category_outlined,
+                                                  size: 16,
+                                                  color:
+                                                      Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurfaceVariant,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  categoryName,
+                                                  style: Theme.of(
+                                                    context,
+                                                  ).textTheme.bodySmall?.copyWith(
+                                                    color:
+                                                        Theme.of(context)
+                                                            .colorScheme
+                                                            .onSurfaceVariant,
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          if (property['adresse'] != null &&
+                                              property['adresse'].isNotEmpty)
+                                            Text(
+                                              property['adresse'],
+                                              style: Theme.of(
+                                                context,
+                                              ).textTheme.bodyMedium?.copyWith(
+                                                color:
+                                                    Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
+                                              ),
+                                            ),
+                                          const SizedBox(height: 8),
+                                          if (property['descriptionLongue'] !=
+                                              null)
+                                            Text(
+                                              property['descriptionLongue'],
+                                              maxLines: 3,
+                                              overflow: TextOverflow.ellipsis,
+                                              style:
+                                                  Theme.of(
+                                                    context,
+                                                  ).textTheme.bodyMedium,
+                                            ),
+                                          const SizedBox(height: 12),
+
+                                          // category-specific info
+                                          _buildCategorySpecificInfo(property),
+
+                                          const SizedBox(height: 12),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.end,
+                                            children: [
+                                              _smallCircleIconButton(
+                                                icon: Icons.add_photo_alternate,
+                                                onPressed:
+                                                    () => _uploadImage(
+                                                      property['id'],
+                                                    ),
+                                                iconColor: primary,
+                                                bgColor: Colors.white
+                                                    .withOpacity(0.1),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              _smallCircleIconButton(
+                                                icon: Icons.edit,
+                                                onPressed:
+                                                    () => _showEditPropertyForm(
+                                                      property,
+                                                    ),
+                                                iconColor: Colors.blue,
+                                                bgColor: Colors.white
+                                                    .withOpacity(0.1),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              _smallCircleIconButton(
+                                                icon: Icons.delete,
+                                                onPressed:
+                                                    () =>
+                                                        _showDeleteConfirmation(
+                                                          property,
+                                                        ),
+                                                bgColor: Colors.white
+                                                    .withOpacity(0.1),
+                                                iconColor: Colors.red,
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                ),
+              ],
+            ),
+          ),
+
+          // Backdrop + dismiss when form open
+          if (_isAddingProperty || _isEditingProperty) ...[
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () {
+                  FocusScope.of(context).unfocus();
+                  _cancelForm();
+                },
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                  child: Container(color: Colors.black.withOpacity(0.22)),
+                ),
+              ),
+            ),
+
+            // Bottom sheet form modernisé
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 420),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.88,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.background,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.12),
+                        blurRadius: 12,
+                        offset: const Offset(0, -6),
+                      ),
+                    ],
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(18.0),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Header
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    _isEditingProperty
+                                        ? 'Modifier l’annonce'
+                                        : 'Ajouter une annonce',
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.close),
+                                    onPressed: _cancelForm,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Name
+                              TextFormField(
+                                controller: _nameController,
+                                decoration: InputDecoration(
+                                  labelText: 'Nom *',
+                                  filled: true,
+
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                validator:
+                                    (value) =>
+                                        (value == null || value.isEmpty)
+                                            ? 'Veuillez entrer un nom'
+                                            : null,
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Email + Phone
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _emailController,
+                                      decoration: InputDecoration(
+                                        labelText: 'Email *',
+                                        filled: true,
+
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      validator:
+                                          (value) =>
+                                              (value == null || value.isEmpty)
+                                                  ? 'Veuillez entrer un email'
+                                                  : null,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _phoneController,
+                                      keyboardType: TextInputType.phone,
+                                      decoration: InputDecoration(
+                                        labelText: 'Téléphone *',
+                                        filled: true,
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      validator:
+                                          (value) =>
+                                              (value == null || value.isEmpty)
+                                                  ? 'Veuillez entrer un numéro de téléphone'
+                                                  : null,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Address search field (kept)
+                              AddressSearchField(
+                                onAddressSelected: (address, lat, lon) {
+                                  _addressController.text = address;
+                                  _updateCoordinatesFromAddress(address);
+                                },
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Website
+                              TextField(
+                                controller: _websiteController,
+                                decoration: InputDecoration(
+                                  labelText: 'Site Web',
+                                  filled: true,
+
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+
+                              // City / Category
+                              DropdownButtonFormField<int>(
+                                decoration: InputDecoration(
+                                  labelText: 'Ville *',
+                                  filled: true,
+
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                value: _selectedCityId,
+                                items:
+                                    _cities.map<DropdownMenuItem<int>>((city) {
+                                      return DropdownMenuItem<int>(
+                                        value: city['id'],
+                                        child: Text(city['nom']),
+                                      );
+                                    }).toList(),
+                                onChanged: (value) {
+                                  setState(() => _selectedCityId = value);
+                                  FocusScope.of(context).unfocus();
+                                },
+                                validator:
+                                    (v) =>
+                                        v == null
+                                            ? "Veuillez sélectionner une ville"
+                                            : null,
+                              ),
+                              const SizedBox(height: 12),
+                              DropdownButtonFormField<int>(
+                                decoration: InputDecoration(
+                                  labelText: 'Catégorie *',
+                                  filled: true,
+
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                value: _selectedCategoryId,
+                                items:
+                                    _categories.map<DropdownMenuItem<int>>((
+                                      category,
+                                    ) {
+                                      return DropdownMenuItem<int>(
+                                        value: category['id'],
+                                        child: Text(category['nom']),
+                                      );
+                                    }).toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedCategoryId = value;
+                                    _onCategoryChanged(_selectedCategoryId);
+                                  });
+                                },
+                                validator:
+                                    (v) =>
+                                        v == null
+                                            ? "Veuillez sélectionner une catégorie"
+                                            : null,
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // Price
+                              TextFormField(
+                                controller: _priceController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: 'Prix *',
+                                  filled: true,
+
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                validator:
+                                    (v) =>
+                                        (v == null || v.isEmpty)
+                                            ? 'Veuillez entrer un prix'
+                                            : null,
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // Map for picking location
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Position sur la carte:',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                height: 260,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey[300]!),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Stack(
+                                    children: [
+                                      FlutterMap(
+                                        mapController: _mapController,
+                                        options: MapOptions(
+                                          initialCenter: _selectedLocation,
+                                          initialZoom: 15,
+                                          onTap: (tapPosition, point) {
+                                            setState(() {
+                                              _selectedLocation = point;
+                                              _updateMarker();
+                                              _latitudeController.text =
+                                                  point.latitude.toString();
+                                              _longitudeController.text =
+                                                  point.longitude.toString();
+                                              _updateAddressFromCoordinates();
+                                            });
+                                          },
+                                        ),
+                                        children: [
+                                          TileLayer(
+                                            urlTemplate:
+                                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                            userAgentPackageName:
+                                                'com.konnekt.maroceasy',
+                                          ),
+                                          MarkerLayer(
+                                            markers:
+                                                _markers
+                                                    .map(
+                                                      (marker) => Marker(
+                                                        point: marker.position,
+                                                        width: 40,
+                                                        height: 40,
+                                                        child: Icon(
+                                                          Icons.location_pin,
+                                                          color: primary,
+                                                          size: 40,
+                                                        ),
+                                                      ),
+                                                    )
+                                                    .toList(),
+                                          ),
+                                        ],
+                                      ),
+                                      Positioned(
+                                        left: 10,
+                                        bottom: 10,
+                                        child: FloatingActionButton(
+                                          mini: true,
+                                          backgroundColor:
+                                              Theme.of(
+                                                context,
+                                              ).colorScheme.background,
+                                          child: Icon(
+                                            Icons.my_location,
+                                            color: primary,
+                                          ),
+                                          onPressed: _getCurrentLocation,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // Lat / Lon readonly
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _latitudeController,
+                                      decoration: InputDecoration(
+                                        labelText: 'Latitude',
+                                        filled: true,
+
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        suffixIcon: const Icon(
+                                          Icons.location_on,
+                                        ),
+                                      ),
+                                      readOnly: true,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _longitudeController,
+                                      decoration: InputDecoration(
+                                        labelText: 'Longitude',
+                                        filled: true,
+
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        suffixIcon: const Icon(
+                                          Icons.location_on,
+                                        ),
+                                      ),
+                                      readOnly: true,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // Description
+                              TextFormField(
+                                controller: _descriptionController,
+                                decoration: InputDecoration(
+                                  labelText: 'Description *',
+                                  filled: true,
+
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                maxLines: 4,
+                                validator:
+                                    (v) =>
+                                        (v == null || v.isEmpty)
+                                            ? 'Veuillez entrer une description'
+                                            : null,
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // Category-specific fields kept
+                              _buildCategorySpecificFields(
+                                _isEditingProperty ? _selectedCategoryId! : 0,
+                              ),
+
+                              const SizedBox(height: 18),
+
+                              // Submit row
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  TextButton(
+                                    onPressed: _cancelForm,
+                                    child: const Text('Annuler'),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      if (_formKey.currentState!.validate()) {
+                                        if (_isEditingProperty) {
+                                          _updateProperty(_editingPropertyId!);
+                                        } else {
+                                          _addProperty();
+                                        }
+                                        FocusScope.of(context).unfocus();
+                                        _cancelForm();
+                                      } else {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Veillez remplir tous les champs obligatoires.',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: primary,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 18,
+                                        vertical: 12,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      _isEditingProperty
+                                          ? 'Mettre à jour'
+                                          : 'Ajouter',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 
-  // Display image carousel for a property
-  Widget _buildImageCarousel(List<dynamic> images) {
-    if (images.isEmpty) {
-      return Container(); // Return empty container if no images
-    }
+  // Helper: small circular icon button (keeps look consistent)
+  Widget _smallCircleIconButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    Color bgColor = Colors.white,
+    Color iconColor = Colors.black,
+  }) {
+    return Material(
+      color: bgColor,
+      shape: const CircleBorder(),
+      child: IconButton(
+        icon: Icon(icon, size: 18, color: iconColor),
+        onPressed: onPressed,
+        padding: const EdgeInsets.all(8),
+        constraints: const BoxConstraints(),
+      ),
+    );
+  }
 
+  Widget _buildImageCarousel(List<dynamic> images) {
     final PageController pageController = PageController();
     int currentPage = 0;
 
     return StatefulBuilder(
       builder: (context, setState) {
-        return Stack(
+        return Column(
           children: [
-            Container(
-              height: 200,
-              child: PageView.builder(
-                controller: pageController,
-                itemCount: images.length,
-                onPageChanged: (index) {
-                  setState(() {
-                    currentPage = index;
-                  });
-                },
-                itemBuilder: (context, index) {
-                  final image = images[index];
-                  return Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.network(
-                        image['urlPhoto'],
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Center(
-                            child: Text('Erreur de chargement de l\'image'),
-                          );
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              value:
-                                  loadingProgress.expectedTotalBytes != null
-                                      ? loadingProgress.cumulativeBytesLoaded /
-                                          loadingProgress.expectedTotalBytes!
-                                      : null,
-                            ),
-                          );
-                        },
-                      ),
-                      // Delete button overlay
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: IconButton(
-                          icon: Icon(Icons.delete, color: Colors.pink),
-                          style: IconButton.styleFrom(
-                            backgroundColor: Colors.black54,
-                          ),
-                          onPressed: () {
-                            _showDeleteImageConfirmation(image['id']);
+            Stack(
+              children: [
+                // ✅ Carousel avec coins arrondis + ombre
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: PageView.builder(
+                      controller: pageController,
+                      itemCount: images.length,
+                      onPageChanged: (index) {
+                        setState(() => currentPage = index);
+                      },
+                      itemBuilder: (context, index) {
+                        final imageUrl = images[index]['urlPhoto'];
+                        return GestureDetector(
+                          onTap: () {
+                            // 🔍 Hero preview plein écran
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (_) => Scaffold(
+                                      backgroundColor: Colors.black,
+                                      body: GestureDetector(
+                                        onTap: () => Navigator.pop(context),
+                                        child: Center(
+                                          child: Hero(
+                                            tag: 'image-$index',
+                                            child: Image.network(
+                                              imageUrl,
+                                              fit: BoxFit.contain,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                              ),
+                            );
                           },
+                          child: Hero(
+                            tag: 'image-$index',
+                            child: Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              loadingBuilder: (
+                                context,
+                                child,
+                                loadingProgress,
+                              ) {
+                                if (loadingProgress == null) return child;
+                                return Container(
+                                  color: Colors.grey[200],
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[300],
+                                  child: const Icon(
+                                    Icons.broken_image,
+                                    color: Colors.grey,
+                                    size: 60,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+
+                // 🔹 Flèches de navigation
+                Positioned(
+                  left: 8,
+                  top: 0,
+                  bottom: 0,
+                  child: _carouselNavButton(Icons.arrow_back_ios_new, () {
+                    if (currentPage > 0) {
+                      pageController.previousPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                      );
+                    }
+                  }),
+                ),
+                Positioned(
+                  right: 8,
+                  top: 0,
+                  bottom: 0,
+                  child: _carouselNavButton(Icons.arrow_forward_ios, () {
+                    if (currentPage < images.length - 1) {
+                      pageController.nextPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                      );
+                    }
+                  }),
+                ),
+                // Delete button overlay
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IconButton(
+                    onPressed:
+                        () => _showDeleteImageConfirmation(
+                          images[currentPage]['id'],
                         ),
-                      ),
-                    ],
-                  );
-                },
+                    icon: Icon(
+                      Icons.delete,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.black26.withOpacity(0.3),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            // ✅ Indicateur de pages stylé
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                images.length,
+                (index) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  height: 6,
+                  width: currentPage == index ? 18 : 6,
+                  decoration: BoxDecoration(
+                    color:
+                        currentPage == index
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(
+                              context,
+                            ).colorScheme.primary.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
             ),
-            // Left navigation arrow
-            if (images.length > 1)
-              Positioned(
-                left: 8,
-                top: 0,
-                bottom: 0,
-                child: Center(
-                  child: IconButton(
-                    icon: Icon(Icons.arrow_back_ios, color: Colors.white),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.black38,
-                    ),
-                    onPressed: () {
-                      if (currentPage > 0) {
-                        pageController.previousPage(
-                          duration: Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
-                      }
-                    },
-                  ),
-                ),
-              ),
-            // Right navigation arrow
-            if (images.length > 1)
-              Positioned(
-                right: 8,
-                top: 0,
-                bottom: 0,
-                child: Center(
-                  child: IconButton(
-                    icon: Icon(Icons.arrow_forward_ios, color: Colors.white),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.black38,
-                    ),
-                    onPressed: () {
-                      if (currentPage < images.length - 1) {
-                        pageController.nextPage(
-                          duration: Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
-                      }
-                    },
-                  ),
-                ),
-              ),
-            // Page indicators
-            if (images.length > 1)
-              Positioned(
-                bottom: 8,
-                left: 0,
-                right: 0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    images.length,
-                    (index) => Container(
-                      width: 8,
-                      height: 8,
-                      margin: EdgeInsets.symmetric(horizontal: 4),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color:
-                            currentPage == index
-                                ? Colors.white
-                                : Colors.white.withOpacity(0.5),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
           ],
         );
       },
+    );
+  }
+
+  // 🔸 Petit helper pour les flèches
+  Widget _carouselNavButton(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.3),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: Colors.white, size: 18),
+      ),
     );
   }
 
@@ -2393,853 +2598,511 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
               _categories,
             )
             : _currentFormType;
-    switch (_formType) {
-      case CategoryFormType.SANTE:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            const Text(
-              'Informations spécifiques pour professionnel de santé',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 16),
 
-            // Languages
-            const Text('Langues parlées'),
-            Wrap(
-              spacing: 8,
-              children:
-                  _availableLanguages.map((language) {
-                    return FilterChip(
-                      label: Text(language),
-                      selected: _selectedLanguages.contains(language),
-                      onSelected: (selected) {
-                        setState(() {
-                          if (selected) {
-                            _selectedLanguages.add(language);
-                          } else {
-                            _selectedLanguages.remove(language);
-                          }
-                        });
-                      },
-                    );
-                  }).toList(),
-            ),
-            const SizedBox(height: 16),
+    Widget buildSectionTitle(String title) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
+        child: Text(
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+      );
+    }
 
-            // Services
-            const Text('Services proposés'),
-            Wrap(
-              spacing: 8,
-              children:
-                  _availableServices.map((service) {
-                    return FilterChip(
-                      label: Text(service),
-                      selected: _selectedServices.contains(service),
-                      onSelected: (selected) {
-                        setState(() {
-                          if (selected) {
-                            _selectedServices.add(service);
-                          } else {
-                            _selectedServices.remove(service);
-                          }
-                        });
-                      },
-                    );
-                  }).toList(),
-            ),
-            const SizedBox(height: 16),
-
-            // Payment methods
-            const Text('Moyens de paiement acceptés'),
-            Wrap(
-              spacing: 8,
-              children:
-                  _availablePaymentMethods.map((method) {
-                    return FilterChip(
-                      label: Text(method),
-                      selected: _selectedPaymentMethods.contains(method),
-                      onSelected: (selected) {
-                        setState(() {
-                          if (selected) {
-                            _selectedPaymentMethods.add(method);
-                          } else {
-                            _selectedPaymentMethods.remove(method);
-                          }
-                        });
-                      },
-                    );
-                  }).toList(),
-            ),
-            const SizedBox(height: 16),
-
-            // Business hours
-            const Text('Horaires d\'ouverture'),
-            const SizedBox(height: 8),
-
-            // For each day of the week
-            ..._businessHours.entries.map((entry) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 100,
-                      child: Text(
-                        entry.key.substring(0, 1).toUpperCase() +
-                            entry.key.substring(1),
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () async {
-                                if (entry.value == 'Fermé') return;
-
-                                final TimeOfDay? openTime =
-                                    await showTimePicker(
-                                      context: context,
-                                      initialTime: _parseTimeString(
-                                        entry.value,
-                                        isOpeningTime: true,
-                                      ),
-                                      builder: (context, child) {
-                                        return Theme(
-                                          data: Theme.of(context).copyWith(
-                                            colorScheme: ColorScheme.light(
-                                              primary: Colors.pink,
-                                            ),
-                                          ),
-                                          child: child!,
-                                        );
-                                      },
-                                    );
-
-                                if (openTime != null) {
-                                  setState(() {
-                                    final closeTimeStr =
-                                        _getCloseTimeFromString(entry.value);
-                                    final openTimeStr =
-                                        '${openTime.hour.toString().padLeft(2, '0')}:${openTime.minute.toString().padLeft(2, '0')}';
-                                    _businessHours[entry.key] =
-                                        '$openTimeStr-$closeTimeStr';
-                                  });
-                                }
-                              },
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  vertical: 12,
-                                  horizontal: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  entry.value == 'Fermé'
-                                      ? 'Fermé'
-                                      : _getOpenTimeFromString(entry.value),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Text('-'),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () async {
-                                if (entry.value == 'Fermé') return;
-
-                                final TimeOfDay? closeTime =
-                                    await showTimePicker(
-                                      context: context,
-                                      initialTime: _parseTimeString(
-                                        entry.value,
-                                        isOpeningTime: false,
-                                      ),
-                                      builder: (context, child) {
-                                        return Theme(
-                                          data: Theme.of(context).copyWith(
-                                            colorScheme: ColorScheme.light(
-                                              primary: Colors.pink,
-                                            ),
-                                          ),
-                                          child: child!,
-                                        );
-                                      },
-                                    );
-
-                                if (closeTime != null) {
-                                  setState(() {
-                                    final openTimeStr = _getOpenTimeFromString(
-                                      entry.value,
-                                    );
-                                    final closeTimeStr =
-                                        '${closeTime.hour.toString().padLeft(2, '0')}:${closeTime.minute.toString().padLeft(2, '0')}';
-                                    _businessHours[entry.key] =
-                                        '$openTimeStr-$closeTimeStr';
-                                  });
-                                }
-                              },
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  vertical: 12,
-                                  horizontal: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  entry.value == 'Fermé'
-                                      ? 'Fermé'
-                                      : _getCloseTimeFromString(entry.value),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          IconButton(
-                            icon: Icon(
-                              entry.value == 'Fermé'
-                                  ? Icons.lock_open
-                                  : Icons.lock,
-                              color:
-                                  entry.value == 'Fermé'
-                                      ? Colors.green
-                                      : Colors.red,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                if (entry.value == 'Fermé') {
-                                  _businessHours[entry.key] = '09:00-18:00';
-                                } else {
-                                  _businessHours[entry.key] = 'Fermé';
-                                }
-                              });
-                            },
-                            tooltip:
-                                entry.value == 'Fermé' ? 'Ouvrir' : 'Fermer',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+    Widget buildChipList(
+      List<String> items,
+      List<String> selectedItems, {
+      required void Function(String, bool) onSelected,
+    }) {
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children:
+            items.map((item) {
+              final isSelected = selectedItems.contains(item);
+              return FilterChip(
+                label: Text(item),
+                selected: isSelected,
+                onSelected: (selected) => onSelected(item, selected),
+                selectedColor: Theme.of(
+                  context,
+                ).colorScheme.primary.withOpacity(0.1),
+                backgroundColor: Colors.grey.shade200,
+                checkmarkColor: Theme.of(context).colorScheme.primary,
+                labelStyle: TextStyle(
+                  color:
+                      isSelected
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.black87,
                 ),
               );
             }).toList(),
-          ],
-        );
+      );
+    }
 
-      case CategoryFormType.LOGEMENT:
-        // Return existing amenities section for lodging
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    Widget buildBusinessHoursRow(String day, String value) {
+      final openTimeStr = _getOpenTimeFromString(value);
+      final closeTimeStr = _getCloseTimeFromString(value);
+
+      Color getLockColor() {
+        return value == 'Fermé'
+            ? Theme.of(context).colorScheme.secondary.withOpacity(0.5)
+            : Theme.of(context).colorScheme.primary.withOpacity(0.5);
+      }
+
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 16),
-            // Amenities selection
-            Text(
-              'Commodités',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            SizedBox(
+              width: 80,
+              child: Text(
+                '${day[0].toUpperCase()}${day.substring(1)}',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
             ),
-            const SizedBox(height: 8),
-
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children:
-                  _availableAmenities.map((amenity) {
-                    final isSelected = _selectedAmenities.contains(amenity);
-                    return FilterChip(
-                      label: Text(amenity),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        setState(() {
-                          if (selected) {
-                            _selectedAmenities.add(amenity);
-                          } else {
-                            _selectedAmenities.remove(amenity);
-                          }
-                        });
-                      },
-                      backgroundColor: Colors.grey[200],
-                      selectedColor: Colors.pink[100],
-                      checkmarkColor: Colors.pink,
-                    );
-                  }).toList(),
-            ),
-          ],
-        );
-
-      case CategoryFormType.VOYAGE:
-        // Return existing amenities section for lodging
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            // Amenities selection
-            Text(
-              'Commodités',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children:
-                  _availableTravelAmenities.map((amenity) {
-                    final isSelected = _selectedAmenities.contains(amenity);
-                    return FilterChip(
-                      label: Text(amenity),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        setState(() {
-                          if (selected) {
-                            _selectedAmenities.add(amenity);
-                          } else {
-                            _selectedAmenities.remove(amenity);
-                          }
-                        });
-                      },
-                      backgroundColor: Colors.grey[200],
-                      selectedColor: Colors.pink[100],
-                      checkmarkColor: Colors.pink,
-                    );
-                  }).toList(),
-            ),
-          ],
-        );
-
-      case CategoryFormType.VOITURE:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            const Text(
-              'Informations spécifiques pour véhicule',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-
-            // Option pour choisir entre annonce individuelle ou concessionnaire
-            Row(
-              children: [
-                // Véhicule individuel
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _isConcessionnaire = false;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      decoration: BoxDecoration(
-                        color:
-                            !_isConcessionnaire
-                                ? Colors.pink.withOpacity(0.1)
-                                : Colors.grey.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color:
-                              !_isConcessionnaire
-                                  ? Colors.pink
-                                  : Colors.grey.withOpacity(0.3),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.directions_car,
-                            color:
-                                !_isConcessionnaire ? Colors.pink : Colors.grey,
-                            size: 28,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Véhicule individuel',
-                            style: TextStyle(
-                              color:
-                                  !_isConcessionnaire
-                                      ? Colors.pink
-                                      : Colors.black87,
-                              fontWeight:
-                                  !_isConcessionnaire
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
+            const SizedBox(width: 5),
+            Expanded(
+              child: Row(
+                children: [
+                  // Bouton ouverture
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surface.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outlineVariant.withOpacity(0.5),
                             ),
                           ),
-                        ],
+                          child: TextButton(
+                            onPressed:
+                                value == 'Fermé'
+                                    ? null
+                                    : () async {
+                                      final TimeOfDay? openTime =
+                                          await showTimePicker(
+                                            context: context,
+                                            initialTime: _parseTimeString(
+                                              value,
+                                              isOpeningTime: true,
+                                            ),
+                                          );
+                                      if (openTime != null) {
+                                        setState(() {
+                                          final newOpen =
+                                              '${openTime.hour.toString().padLeft(2, '0')}:${openTime.minute.toString().padLeft(2, '0')}';
+                                          _businessHours[day] =
+                                              '$newOpen-$closeTimeStr';
+                                        });
+                                      }
+                                    },
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: Text(
+                              value == 'Fermé' ? 'Fermé' : openTimeStr,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-
-                const SizedBox(width: 12),
-
-                // Concessionnaire
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _isConcessionnaire = true;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      decoration: BoxDecoration(
-                        color:
-                            _isConcessionnaire
-                                ? Colors.pink.withOpacity(0.1)
-                                : Colors.grey.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color:
-                              _isConcessionnaire
-                                  ? Colors.pink
-                                  : Colors.grey.withOpacity(0.3),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.store,
-                            color:
-                                _isConcessionnaire ? Colors.pink : Colors.grey,
-                            size: 28,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Concessionnaire',
-                            style: TextStyle(
-                              color:
-                                  _isConcessionnaire
-                                      ? Colors.pink
-                                      : Colors.black87,
-                              fontWeight:
-                                  _isConcessionnaire
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
+                  const SizedBox(width: 8),
+                  const Text(
+                    '-',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(width: 8),
+                  // Bouton fermeture
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surface.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outlineVariant.withOpacity(0.5),
                             ),
                           ),
-                        ],
+                          child: TextButton(
+                            onPressed:
+                                value == 'Fermé'
+                                    ? null
+                                    : () async {
+                                      final TimeOfDay? closeTime =
+                                          await showTimePicker(
+                                            context: context,
+                                            initialTime: _parseTimeString(
+                                              value,
+                                              isOpeningTime: false,
+                                            ),
+                                          );
+                                      if (closeTime != null) {
+                                        setState(() {
+                                          final newClose =
+                                              '${closeTime.hour.toString().padLeft(2, '0')}:${closeTime.minute.toString().padLeft(2, '0')}';
+                                          _businessHours[day] =
+                                              '$openTimeStr-$newClose';
+                                        });
+                                      }
+                                    },
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: Text(
+                              value == 'Fermé' ? 'Fermé' : closeTimeStr,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Icône verrou avec verre
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(32),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceVariant.withOpacity(0.6),
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            value == 'Fermé' ? Icons.lock_open : Icons.lock,
+                            color: getLockColor(),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _businessHours[day] =
+                                  value == 'Fermé' ? '09:00-18:00' : 'Fermé';
+                            });
+                          },
+                          tooltip: value == 'Fermé' ? 'Ouvrir' : 'Fermer',
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Widget buildToggleOption({
+      required IconData icon,
+      required String label,
+      required bool isSelected,
+      required VoidCallback onTap,
+    }) {
+      return Expanded(
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              color:
+                  isSelected
+                      ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                      : Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color:
+                    isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.grey.shade300,
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  icon,
+                  color:
+                      isSelected
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.grey,
+                  size: 28,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color:
+                        isSelected
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.black87,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+          ),
+        ),
+      );
+    }
 
-            // Afficher les champs appropriés selon le type d'annonce
-            if (_isConcessionnaire)
-              _buildConcessionnaireFields()
-            else
-              _buildVehiculeIndividuelFields(),
-          ],
+    switch (_formType) {
+      case CategoryFormType.SANTE:
+        return Card(
+          elevation: 3,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                buildSectionTitle(
+                  'Informations spécifiques pour professionnel de santé',
+                ),
+                buildSectionTitle('Langues parlées'),
+                buildChipList(
+                  _availableLanguages,
+                  _selectedLanguages,
+                  onSelected: (item, selected) {
+                    setState(() {
+                      selected
+                          ? _selectedLanguages.add(item)
+                          : _selectedLanguages.remove(item);
+                    });
+                  },
+                ),
+                buildSectionTitle('Services proposés'),
+                buildChipList(
+                  _availableServices,
+                  _selectedServices,
+                  onSelected: (item, selected) {
+                    setState(() {
+                      selected
+                          ? _selectedServices.add(item)
+                          : _selectedServices.remove(item);
+                    });
+                  },
+                ),
+                buildSectionTitle('Moyens de paiement acceptés'),
+                buildChipList(
+                  _availablePaymentMethods,
+                  _selectedPaymentMethods,
+                  onSelected: (item, selected) {
+                    setState(() {
+                      selected
+                          ? _selectedPaymentMethods.add(item)
+                          : _selectedPaymentMethods.remove(item);
+                    });
+                  },
+                ),
+                buildSectionTitle('Horaires d\'ouverture'),
+                ..._businessHours.entries
+                    .map(
+                      (entry) => buildBusinessHoursRow(entry.key, entry.value),
+                    )
+                    .toList(),
+              ],
+            ),
+          ),
         );
-      case CategoryFormType.SHOPPING:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            const Text(
-              'Informations spécifiques pour shopping',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+
+      case CategoryFormType.LOGEMENT:
+        return Card(
+          elevation: 3,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                buildSectionTitle('Commodités'),
+                buildChipList(
+                  _availableAmenities,
+                  _selectedAmenities,
+                  onSelected: (item, selected) {
+                    setState(() {
+                      selected
+                          ? _selectedAmenities.add(item)
+                          : _selectedAmenities.remove(item);
+                    });
+                  },
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
+          ),
+        );
 
-            // Shopping amenities selection
-            const Text('Commodités pour shopping'),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children:
-                  _availableShoppingAmenities.map((amenity) {
-                    final isSelected = _selectedShoppingAmenities.contains(
-                      amenity,
-                    );
-                    return FilterChip(
-                      label: Text(amenity),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        setState(() {
-                          if (selected) {
-                            _selectedShoppingAmenities.add(amenity);
-                          } else {
-                            _selectedShoppingAmenities.remove(amenity);
-                          }
-                        });
-                      },
-                      backgroundColor: Colors.grey[200],
-                      selectedColor: Colors.pink[100],
-                      checkmarkColor: Colors.pink,
-                    );
-                  }).toList(),
+      case CategoryFormType.VOYAGE:
+        return Card(
+          elevation: 3,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                buildSectionTitle('Commodités voyage'),
+                buildChipList(
+                  _availableTravelAmenities,
+                  _selectedAmenities,
+                  onSelected: (item, selected) {
+                    setState(() {
+                      selected
+                          ? _selectedAmenities.add(item)
+                          : _selectedAmenities.remove(item);
+                    });
+                  },
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
+          ),
+        );
 
-            // Business hours
-            const Text('Horaires d\'ouverture'),
-            const SizedBox(height: 8),
-
-            // For each day of the week
-            ..._businessHours.entries.map((entry) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Row(
+      case CategoryFormType.VOITURE:
+        return Card(
+          elevation: 3,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                buildSectionTitle('Informations spécifiques pour véhicule'),
+                Row(
                   children: [
-                    SizedBox(
-                      width: 100,
-                      child: Text(
-                        entry.key.substring(0, 1).toUpperCase() +
-                            entry.key.substring(1),
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                    buildToggleOption(
+                      icon: Icons.directions_car,
+                      label: 'Véhicule individuel',
+                      isSelected: !_isConcessionnaire,
+                      onTap: () => setState(() => _isConcessionnaire = false),
                     ),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () async {
-                                if (entry.value == 'Fermé') return;
-
-                                final TimeOfDay? openTime =
-                                    await showTimePicker(
-                                      context: context,
-                                      initialTime: _parseTimeString(
-                                        entry.value,
-                                        isOpeningTime: true,
-                                      ),
-                                      builder: (context, child) {
-                                        return Theme(
-                                          data: Theme.of(context).copyWith(
-                                            colorScheme: ColorScheme.light(
-                                              primary: Colors.pink,
-                                            ),
-                                          ),
-                                          child: child!,
-                                        );
-                                      },
-                                    );
-
-                                if (openTime != null) {
-                                  setState(() {
-                                    final closeTimeStr =
-                                        _getCloseTimeFromString(entry.value);
-                                    final openTimeStr =
-                                        '${openTime.hour.toString().padLeft(2, '0')}:${openTime.minute.toString().padLeft(2, '0')}';
-                                    _businessHours[entry.key] =
-                                        '$openTimeStr-$closeTimeStr';
-                                  });
-                                }
-                              },
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  vertical: 12,
-                                  horizontal: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  entry.value == 'Fermé'
-                                      ? 'Fermé'
-                                      : _getOpenTimeFromString(entry.value),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Text('-'),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () async {
-                                if (entry.value == 'Fermé') return;
-
-                                final TimeOfDay? closeTime =
-                                    await showTimePicker(
-                                      context: context,
-                                      initialTime: _parseTimeString(
-                                        entry.value,
-                                        isOpeningTime: false,
-                                      ),
-                                      builder: (context, child) {
-                                        return Theme(
-                                          data: Theme.of(context).copyWith(
-                                            colorScheme: ColorScheme.light(
-                                              primary: Colors.pink,
-                                            ),
-                                          ),
-                                          child: child!,
-                                        );
-                                      },
-                                    );
-
-                                if (closeTime != null) {
-                                  setState(() {
-                                    final openTimeStr = _getOpenTimeFromString(
-                                      entry.value,
-                                    );
-                                    final closeTimeStr =
-                                        '${closeTime.hour.toString().padLeft(2, '0')}:${closeTime.minute.toString().padLeft(2, '0')}';
-                                    _businessHours[entry.key] =
-                                        '$openTimeStr-$closeTimeStr';
-                                  });
-                                }
-                              },
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  vertical: 12,
-                                  horizontal: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  entry.value == 'Fermé'
-                                      ? 'Fermé'
-                                      : _getCloseTimeFromString(entry.value),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          IconButton(
-                            icon: Icon(
-                              entry.value == 'Fermé'
-                                  ? Icons.lock_open
-                                  : Icons.lock,
-                              color:
-                                  entry.value == 'Fermé'
-                                      ? Colors.green
-                                      : Colors.red,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                if (entry.value == 'Fermé') {
-                                  _businessHours[entry.key] = '09:00-18:00';
-                                } else {
-                                  _businessHours[entry.key] = 'Fermé';
-                                }
-                              });
-                            },
-                            tooltip:
-                                entry.value == 'Fermé' ? 'Ouvrir' : 'Fermer',
-                          ),
-                        ],
-                      ),
+                    const SizedBox(width: 12),
+                    buildToggleOption(
+                      icon: Icons.store,
+                      label: 'Concessionnaire',
+                      isSelected: _isConcessionnaire,
+                      onTap: () => setState(() => _isConcessionnaire = true),
                     ),
                   ],
                 ),
-              );
-            }).toList(),
-          ],
+                const SizedBox(height: 16),
+                _isConcessionnaire
+                    ? _buildConcessionnaireFields()
+                    : _buildVehiculeIndividuelFields(),
+              ],
+            ),
+          ),
+        );
+
+      case CategoryFormType.SHOPPING:
+        return Card(
+          elevation: 3,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                buildSectionTitle('Informations spécifiques pour shopping'),
+                buildSectionTitle('Commodités pour shopping'),
+                buildChipList(
+                  _availableShoppingAmenities,
+                  _selectedShoppingAmenities,
+                  onSelected: (item, selected) {
+                    setState(() {
+                      selected
+                          ? _selectedShoppingAmenities.add(item)
+                          : _selectedShoppingAmenities.remove(item);
+                    });
+                  },
+                ),
+                buildSectionTitle('Horaires d\'ouverture'),
+                ..._businessHours.entries
+                    .map(
+                      (entry) => buildBusinessHoursRow(entry.key, entry.value),
+                    )
+                    .toList(),
+              ],
+            ),
+          ),
         );
 
       case CategoryFormType.RESTAURANT:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            const Text(
-              'Informations spécifiques pour restaurant',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-
-            // Restaurant amenities selection
-            const Text('Commodités pour restaurant'),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children:
-                  _availableRestaurantAmenities.map((amenity) {
-                    final isSelected = _selectedShoppingAmenities.contains(
-                      amenity,
-                    );
-                    return FilterChip(
-                      label: Text(amenity),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        setState(() {
-                          if (selected) {
-                            _selectedShoppingAmenities.add(amenity);
-                          } else {
-                            _selectedShoppingAmenities.remove(amenity);
-                          }
-                        });
-                      },
-                      backgroundColor: Colors.grey[200],
-                      selectedColor: Colors.pink[100],
-                      checkmarkColor: Colors.pink,
-                    );
-                  }).toList(),
-            ),
-            const SizedBox(height: 16),
-
-            // Business hours
-            const Text('Horaires d\'ouverture'),
-            const SizedBox(height: 8),
-
-            // For each day of the week
-            ..._businessHours.entries.map((entry) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 100,
-                      child: Text(
-                        entry.key.substring(0, 1).toUpperCase() +
-                            entry.key.substring(1),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () async {
-                                if (entry.value == 'Fermé') return;
-
-                                final TimeOfDay? openTime =
-                                    await showTimePicker(
-                                      context: context,
-                                      initialTime: _parseTimeString(
-                                        entry.value,
-                                        isOpeningTime: true,
-                                      ),
-                                    );
-
-                                if (openTime != null) {
-                                  setState(() {
-                                    final closeTimeStr =
-                                        _getCloseTimeFromString(entry.value);
-                                    final openTimeStr =
-                                        '${openTime.hour.toString().padLeft(2, '0')}:${openTime.minute.toString().padLeft(2, '0')}';
-                                    _businessHours[entry.key] =
-                                        '$openTimeStr-$closeTimeStr';
-                                  });
-                                }
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                  horizontal: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  entry.value == 'Fermé'
-                                      ? 'Fermé'
-                                      : _getOpenTimeFromString(entry.value),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text('-'),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () async {
-                                if (entry.value == 'Fermé') return;
-
-                                final TimeOfDay? closeTime =
-                                    await showTimePicker(
-                                      context: context,
-                                      initialTime: _parseTimeString(
-                                        entry.value,
-                                        isOpeningTime: false,
-                                      ),
-                                    );
-
-                                if (closeTime != null) {
-                                  setState(() {
-                                    final openTimeStr = _getOpenTimeFromString(
-                                      entry.value,
-                                    );
-                                    final closeTimeStr =
-                                        '${closeTime.hour.toString().padLeft(2, '0')}:${closeTime.minute.toString().padLeft(2, '0')}';
-                                    _businessHours[entry.key] =
-                                        '$openTimeStr-$closeTimeStr';
-                                  });
-                                }
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                  horizontal: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  entry.value == 'Fermé'
-                                      ? 'Fermé'
-                                      : _getCloseTimeFromString(entry.value),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: Icon(
-                              entry.value == 'Fermé'
-                                  ? Icons.lock_open
-                                  : Icons.lock,
-                              color:
-                                  entry.value == 'Fermé'
-                                      ? Colors.green
-                                      : Colors.red,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                if (entry.value == 'Fermé') {
-                                  _businessHours[entry.key] = '09:00-18:00';
-                                } else {
-                                  _businessHours[entry.key] = 'Fermé';
-                                }
-                              });
-                            },
-                            tooltip:
-                                entry.value == 'Fermé' ? 'Ouvrir' : 'Fermer',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+        return Card(
+          elevation: 3,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                buildSectionTitle('Informations spécifiques pour restaurant'),
+                buildSectionTitle('Commodités pour restaurant'),
+                buildChipList(
+                  _availableRestaurantAmenities,
+                  _selectedShoppingAmenities,
+                  onSelected: (item, selected) {
+                    setState(() {
+                      selected
+                          ? _selectedShoppingAmenities.add(item)
+                          : _selectedShoppingAmenities.remove(item);
+                    });
+                  },
                 ),
-              );
-            }).toList(),
-          ],
+                buildSectionTitle('Horaires d\'ouverture'),
+                ..._businessHours.entries
+                    .map(
+                      (entry) => buildBusinessHoursRow(entry.key, entry.value),
+                    )
+                    .toList(),
+              ],
+            ),
+          ),
         );
 
       default:
-        return SizedBox(); // Empty widget for other categories
+        return const SizedBox.shrink();
     }
   }
 
@@ -3265,7 +3128,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                         .map(
                           (amenity) => Chip(
                             label: Text(amenity),
-                            backgroundColor: Colors.grey[200],
+                            backgroundColor: Colors.grey[200]?.withOpacity(0.5),
                             labelStyle: const TextStyle(fontSize: 12),
                           ),
                         )
@@ -3300,7 +3163,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                         .map(
                           (language) => Chip(
                             label: Text(language),
-                            backgroundColor: Colors.blue[50],
+                            backgroundColor: Colors.blue[50]?.withOpacity(0.5),
                             labelStyle: const TextStyle(fontSize: 12),
                           ),
                         )
@@ -3329,7 +3192,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                         .map(
                           (service) => Chip(
                             label: Text(service),
-                            backgroundColor: Colors.green[50],
+                            backgroundColor: Colors.green[50]?.withOpacity(0.5),
                             labelStyle: const TextStyle(fontSize: 12),
                           ),
                         )
@@ -3358,7 +3221,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                         .map(
                           (method) => Chip(
                             label: Text(method),
-                            backgroundColor: Colors.amber[50],
+                            backgroundColor: Colors.amber[50]?.withOpacity(0.5),
                             labelStyle: const TextStyle(fontSize: 12),
                           ),
                         )
@@ -3408,7 +3271,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                         .map(
                           (method) => Chip(
                             label: Text(method),
-                            backgroundColor: Colors.amber[50],
+                            backgroundColor: Colors.amber[50]?.withOpacity(0.5),
                             labelStyle: const TextStyle(fontSize: 12),
                           ),
                         )
@@ -3460,7 +3323,9 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                         .map(
                           (specialty) => Chip(
                             label: Text(specialty),
-                            backgroundColor: Colors.orange[50],
+                            backgroundColor: Colors.orange[50]?.withOpacity(
+                              0.5,
+                            ),
                             labelStyle: const TextStyle(fontSize: 12),
                           ),
                         )
@@ -3502,7 +3367,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                     .map(
                       (amenity) => Chip(
                         label: Text(amenity),
-                        backgroundColor: Colors.grey[200],
+                        backgroundColor: Colors.grey[200]?.withOpacity(0.5),
                       ),
                     )
                     .toList(),
@@ -3512,38 +3377,82 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
   }
 
   // Helper method to display business hours
-  Widget _buildBusinessHoursDisplay(dynamic horaires) {
-    // Handle different formats of horaires (string or map)
-    if (horaires is String) {
-      return Text(horaires);
-    } else if (horaires is Map) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children:
-            horaires.entries.map<Widget>((entry) {
-              final day = entry.key.toString();
-              final hours = entry.value.toString();
+  Widget _buildBusinessHoursDisplay(Map<String, dynamic> horaires) {
+    return Column(
+      children:
+          horaires.entries.map<Widget>((entry) {
+            final day = entry.key.toString();
+            final hours = entry.value.toString();
+            final isClosed = hours.toLowerCase() == 'fermé';
 
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 4.0),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 100,
-                      child: Text(
-                        day.substring(0, 1).toUpperCase() + day.substring(1),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
                     ),
-                    Text(hours),
-                  ],
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.08), // Glass effect
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 100,
+                          child: Text(
+                            '${day[0].toUpperCase()}${day.substring(1)}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color:
+                                  isClosed
+                                      ? Colors.red.withOpacity(0.2)
+                                      : Colors.green.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              isClosed ? 'Fermé' : hours,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                color:
+                                    isClosed
+                                        ? Colors.redAccent
+                                        : Colors.green[800],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          isClosed ? Icons.lock_open : Icons.lock,
+                          color:
+                              isClosed ? Colors.redAccent : Colors.green[700],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              );
-            }).toList(),
-      );
-    } else {
-      return const SizedBox.shrink();
-    }
+              ),
+            );
+          }).toList(),
+    );
   }
 
   // Method to display category-specific information
@@ -3592,31 +3501,31 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                 _buildSpecItem(
                   Icons.directions_car,
                   '${carAttributes['marque']} ${carAttributes['modele']}',
-                  Colors.blue[50],
+                  backgroundColor: Colors.blue[50],
                 ),
               if (carAttributes['annee'] != null)
                 _buildSpecItem(
                   Icons.calendar_today,
                   'Année: ${carAttributes['annee']}',
-                  Colors.green[50],
+                  backgroundColor: Colors.green[50],
                 ),
               if (carAttributes['kilometrage'] != null)
                 _buildSpecItem(
                   Icons.speed,
                   '${carAttributes['kilometrage']} km',
-                  Colors.amber[50],
+                  backgroundColor: Colors.amber[50],
                 ),
               if (carAttributes['carburant'] != null)
                 _buildSpecItem(
                   Icons.local_gas_station,
                   carAttributes['carburant']!,
-                  Colors.red[50],
+                  backgroundColor: Colors.red[50],
                 ),
               if (carAttributes['transmission'] != null)
                 _buildSpecItem(
                   Icons.settings,
                   carAttributes['transmission']!,
-                  Colors.purple[50],
+                  backgroundColor: Colors.purple[50],
                 ),
             ],
           ),
@@ -3640,7 +3549,9 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                           .map(
                             (equipement) => Chip(
                               label: Text(equipement),
-                              backgroundColor: Colors.blue[50],
+                              backgroundColor: Colors.blue[50]?.withOpacity(
+                                0.2,
+                              ),
                               labelStyle: const TextStyle(fontSize: 12),
                             ),
                           )
@@ -3674,7 +3585,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
           _buildSpecItem(
             Icons.directions_car,
             'Environ ${concessionnaireInfo['nbVehicules']} véhicules disponibles',
-            Colors.blue[50],
+            backgroundColor: Colors.blue[50],
           ),
         const SizedBox(height: 12),
 
@@ -3684,7 +3595,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
           _buildSpecItem(
             Icons.euro,
             'Prix: ${concessionnaireInfo['minPrice']}€ - ${concessionnaireInfo['maxPrice']}€',
-            Colors.green[50],
+            backgroundColor: Colors.green[50],
           ),
         const SizedBox(height: 16),
 
@@ -3706,7 +3617,9 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                         .map(
                           (type) => Chip(
                             label: Text(type),
-                            backgroundColor: Colors.purple[50],
+                            backgroundColor: Colors.purple[50]?.withOpacity(
+                              0.5,
+                            ),
                             labelStyle: const TextStyle(fontSize: 12),
                           ),
                         )
@@ -3734,7 +3647,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                         .map(
                           (brand) => Chip(
                             label: Text(brand),
-                            backgroundColor: Colors.blue[50],
+                            backgroundColor: Colors.blue[50]?.withOpacity(0.5),
                             labelStyle: const TextStyle(fontSize: 12),
                           ),
                         )
@@ -3762,7 +3675,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                         .map(
                           (service) => Chip(
                             label: Text(service),
-                            backgroundColor: Colors.amber[50],
+                            backgroundColor: Colors.amber[50]?.withOpacity(0.5),
                             labelStyle: const TextStyle(fontSize: 12),
                           ),
                         )
@@ -3774,7 +3687,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
     );
   }
 
-  // Vérifier si une propriété est un concessionnaire
+  // Vérifier si une annonce est un concessionnaire
   bool _isPropertyConcessionnaire(Map<String, dynamic> property) {
     if (property['comodites'] != null && property['comodites'] is List) {
       return (property['comodites'] as List).any(
@@ -3865,8 +3778,10 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                     });
                   },
                   backgroundColor: Colors.grey[200],
-                  selectedColor: Colors.pink[100],
-                  checkmarkColor: Colors.pink,
+                  selectedColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withOpacity(0.2),
+                  checkmarkColor: Theme.of(context).colorScheme.primary,
                 );
               }).toList(),
         ),
@@ -3897,8 +3812,10 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                     });
                   },
                   backgroundColor: Colors.grey[200],
-                  selectedColor: Colors.pink[100],
-                  checkmarkColor: Colors.pink,
+                  selectedColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withOpacity(0.2),
+                  checkmarkColor: Theme.of(context).colorScheme.primary,
                 );
               }).toList(),
         ),
@@ -3929,8 +3846,10 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                     });
                   },
                   backgroundColor: Colors.grey[200],
-                  selectedColor: Colors.pink[100],
-                  checkmarkColor: Colors.pink,
+                  selectedColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withOpacity(0.2),
+                  checkmarkColor: Theme.of(context).colorScheme.primary,
                 );
               }).toList(),
         ),
@@ -4136,9 +4055,11 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                       }
                     });
                   },
-                  backgroundColor: Colors.grey[200],
-                  selectedColor: Colors.pink[100],
-                  checkmarkColor: Colors.pink,
+                  backgroundColor: Colors.grey[200]?.withOpacity(0.2),
+                  selectedColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withOpacity(0.2),
+                  checkmarkColor: Theme.of(context).colorScheme.primary,
                 );
               }).toList(),
         ),
@@ -4146,20 +4067,35 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
     );
   }
 
-  Widget _buildSpecItem(IconData icon, String text, Color? backgroundColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: backgroundColor ?? Colors.grey[100],
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: Colors.grey[800]),
-          const SizedBox(width: 4),
-          Text(text, style: TextStyle(color: Colors.grey[800], fontSize: 14)),
-        ],
+  Widget _buildSpecItem(IconData icon, String text, {Color? backgroundColor}) {
+    final theme = Theme.of(context);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: (backgroundColor ?? theme.colorScheme.surfaceVariant)
+                .withOpacity(0.25),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withOpacity(0.2)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: theme.colorScheme.primary),
+              const SizedBox(width: 6),
+              Text(
+                text,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

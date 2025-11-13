@@ -9,8 +9,8 @@ class LoaderVille extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(right: 10),
       child: Shimmer.fromColors(
-        baseColor: Colors.grey[300]!,
-        highlightColor: Colors.grey[100]!,
+        baseColor: Theme.of(context).colorScheme.onTertiary,
+        highlightColor: Theme.of(context).colorScheme.onTertiaryContainer,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: Container(
@@ -31,8 +31,8 @@ class LoaderDecouverte extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+      baseColor: Theme.of(context).colorScheme.onTertiary,
+      highlightColor: Theme.of(context).colorScheme.onTertiaryContainer,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Container(
@@ -52,8 +52,8 @@ class LoaderCategorieAdmin extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+      baseColor: Theme.of(context).colorScheme.onTertiary,
+      highlightColor: Theme.of(context).colorScheme.onTertiaryContainer,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Container(
@@ -77,8 +77,8 @@ class LoaderCategory extends StatelessWidget {
       child: Column(
         children: [
           Shimmer.fromColors(
-            baseColor: Colors.grey[300]!,
-            highlightColor: Colors.grey[100]!,
+            baseColor: Theme.of(context).colorScheme.onTertiary,
+            highlightColor: Theme.of(context).colorScheme.onTertiaryContainer,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: Container(
@@ -90,8 +90,8 @@ class LoaderCategory extends StatelessWidget {
             ),
           ),
           Shimmer.fromColors(
-            baseColor: Colors.grey[300]!,
-            highlightColor: Colors.grey[100]!,
+            baseColor: Theme.of(context).colorScheme.onTertiary,
+            highlightColor: Theme.of(context).colorScheme.onTertiaryContainer,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: Container(
@@ -114,8 +114,8 @@ class LoaderAnnonce extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+      baseColor: Theme.of(context).colorScheme.onTertiary,
+      highlightColor: Theme.of(context).colorScheme.onTertiaryContainer,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Container(

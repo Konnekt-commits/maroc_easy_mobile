@@ -48,9 +48,12 @@ class _AddressSearchFieldState extends State<AddressSearchField> {
       children: [
         TextFormField(
           controller: _controller,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: "Adresse *",
-            border: OutlineInputBorder(),
+
+            filled: true,
+
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
           onChanged: (value) {
             if (_debounce?.isActive ?? false) _debounce!.cancel();

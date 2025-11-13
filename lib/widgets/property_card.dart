@@ -36,7 +36,7 @@ class PropertyCard extends StatelessWidget {
               offset: const Offset(0, 3),
             ),
           ],
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.background,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

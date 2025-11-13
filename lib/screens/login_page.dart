@@ -2,8 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'home_page.dart';
-import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -14,8 +12,9 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _rememberMe = false;
@@ -28,313 +27,264 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _loadSavedCredentials() async {
     final prefs = await SharedPreferences.getInstance();
-    final rememberMe = prefs.getBool('rememberMe') ?? false;
-
-    if (rememberMe) {
-      setState(() {
-        _emailController.text = prefs.getString('email') ?? '';
-        _passwordController.text = prefs.getString('password') ?? '';
-        _rememberMe = true;
-      });
-    }
+    setState(() {
+      _rememberMe = prefs.getBool('rememberMe') ?? false;
+      if (_rememberMe) {
+        _emailController.text = prefs.getString('email') ?? "";
+        _passwordController.text = prefs.getString('password') ?? "";
+      }
+    });
   }
 
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final response = await http.post(
-        Uri.parse('https://maroceasy.konnekt.fr/auth'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse("https://maroceasy.konnekt.fr/auth"),
+        headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          'email': _emailController.text,
-          'password': _passwordController.text,
+          "email": _emailController.text,
+          "password": _passwordController.text,
         }),
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final token = data['token'];
-        final userData = data['user'];
+        final decoded = jsonDecode(response.body);
+        final token = decoded["token"];
+        final userData = decoded["user"];
 
-        // Save token and user data to shared preferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', token);
+        await prefs.setString("userData", jsonEncode(userData));
 
-        // Store user data as JSON string
-        await prefs.setString('userData', jsonEncode(userData));
-
-        // Save credentials if remember me is checked
+        // Remember me
         if (_rememberMe) {
-          await prefs.setBool('rememberMe', true);
-          await prefs.setString('email', _emailController.text);
-          await prefs.setString('password', _passwordController.text);
+          prefs.setBool("rememberMe", true);
+          prefs.setString("email", _emailController.text);
+          prefs.setString("password", _passwordController.text);
         } else {
-          // Clear saved credentials if remember me is unchecked
-          await prefs.setBool('rememberMe', false);
-          await prefs.remove('email');
-          await prefs.remove('password');
+          prefs.remove("rememberMe");
+          prefs.remove("email");
+          prefs.remove("password");
         }
 
-        // Redirect based on user role
-        if (userData['roles'].contains('ROLE_ADMIN')) {
-          Navigator.of(context).pushReplacementNamed('/admin');
-        } else if (userData['roles'].contains('ROLE_PROFESSIONAL')) {
-          Navigator.of(context).pushReplacementNamed('/professional');
+        // Redirect depending on role
+        if (userData["roles"].contains("ROLE_ADMIN")) {
+          Navigator.pushReplacementNamed(context, "/admin");
+        } else if (userData["roles"].contains("ROLE_PROFESSIONAL")) {
+          Navigator.pushReplacementNamed(context, "/professional");
         } else {
-          // Navigate to home page for regular users
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => HomePage()),
-          );
+          Navigator.pushReplacementNamed(context, "/home");
         }
       } else {
-        // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Identifiants incorrects. Veuillez réessayer.'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showSnackbar("Identifiants incorrects.");
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur de connexion: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showSnackbar("Erreur : $e");
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
+  }
+
+  void _showSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(message),
+        backgroundColor: Colors.redAccent,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      backgroundColor: theme.colorScheme.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 40),
-                  // Logo or App Name
-                  Center(
-                    child: Text(
-                      'MarocEasy',
-                      style: TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.pink,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 40),
-                  Text(
-                    'Connexion',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 20),
-                  // Email Field
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Veuillez entrer votre email';
-                      }
-                      if (!RegExp(
-                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                      ).hasMatch(value)) {
-                        return 'Veuillez entrer un email valide';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Password Field
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      labelText: 'Mot de passe',
-                      prefixIcon: Icon(Icons.lock),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Veuillez entrer votre mot de passe';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 10),
+          child: Column(
+            children: [
+              const SizedBox(height: 30),
 
-                  // Remember Me Checkbox
-                  Column(
-                    children: [
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: _rememberMe,
-                            onChanged: (value) {
-                              setState(() {
-                                _rememberMe = value ?? false;
-                              });
-                            },
-                            activeColor: Colors.pink,
-                          ),
-                          Text('Se souvenir de moi'),
-                        ],
-                      ),
-                      // Forgot Password
-                      TextButton(
-                        onPressed: () {
-                          // Navigate to forgot password page
-                        },
-                        child: Text(
-                          'Mot de passe oublié?',
-                          style: TextStyle(color: Colors.pink),
-                        ),
-                      ),
+              /// ✅ branding amélioré avec dégradé + nom
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      theme.colorScheme.primary,
+                      theme.colorScheme.secondary,
                     ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-
-                  const SizedBox(height: 24),
-                  // Login Button
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _login,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.pink,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Center(
+                  child: Text(
+                    "MarocEasy",
+                    style: TextStyle(
+                      fontSize: 42,
+                      color: theme.colorScheme.onPrimary,
+                      fontWeight: FontWeight.w900,
                     ),
-                    child:
-                        _isLoading
-                            ? CircularProgressIndicator(color: Colors.white)
-                            : Text(
-                              'Se connecter',
-                              style: TextStyle(fontSize: 16),
-                            ),
                   ),
-                  const SizedBox(height: 24),
-                  // Or continue with
-                  // Row(
-                  //   children: [
-                  //     Expanded(child: Divider()),
-                  //     Padding(
-                  //       padding: const EdgeInsets.symmetric(horizontal: 16),
-                  //       child: Text('Ou continuer avec'),
-                  //     ),
-                  //     Expanded(child: Divider()),
-                  //   ],
-                  // ),
-                  // const SizedBox(height: 24),
-                  // // Social Login Buttons
-                  // Row(
-                  //   mainAxisAlignment: MainAxisAlignment.center,
-                  //   children: [
-                  //     _socialLoginButton(
-                  //       icon: Icons.facebook,
-                  //       color: Colors.blue,
-                  //       onPressed: () {},
-                  //     ),
-                  //     const SizedBox(width: 16),
-                  //     _socialLoginButton(
-                  //       icon: Icons.g_mobiledata,
-                  //       color: Colors.red,
-                  //       onPressed: () {},
-                  //     ),
-                  //     const SizedBox(width: 16),
-                  //     _socialLoginButton(
-                  //       icon: Icons.apple,
-                  //       color: Colors.black,
-                  //       onPressed: () {},
-                  //     ),
-                  //   ],
-                  // ),
-                  const SizedBox(height: 24),
-                  // Register Link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text("Vous n'avez pas de compte?"),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => RegisterPage(),
-                            ),
-                          );
-                        },
-                        child: Text(
-                          'S\'inscrire',
-                          style: TextStyle(color: Colors.pink),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
-            ),
+
+              const SizedBox(height: 40),
+
+              Text(
+                "Connexion",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 26,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    _inputField(
+                      controller: _emailController,
+                      label: "Email",
+                      icon: Icons.email,
+                      validatorMsg: "Veuillez entrer un email valide",
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 16),
+
+                    /// mot de passe
+                    _inputField(
+                      controller: _passwordController,
+                      label: "Mot de passe",
+                      icon: Icons.lock,
+                      isPassword: true,
+                      obscurePassword: _obscurePassword,
+                      togglePasswordVisibility: () {
+                        setState(() => _obscurePassword = !_obscurePassword);
+                      },
+                      validatorMsg: "Veuillez entrer votre mot de passe",
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    /// remember me + forgot password
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: _rememberMe,
+                          onChanged:
+                              (v) => setState(() => _rememberMe = v ?? false),
+                          activeColor: theme.colorScheme.primary,
+                        ),
+                        const Text("Se souvenir de moi"),
+                      ],
+                    ),
+                    TextButton(
+                      onPressed: () {},
+                      child: Text(
+                        "Mot de passe oublié ?",
+                        style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    /// bouton login avec gradient
+                    SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _login,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.colorScheme.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child:
+                            _isLoading
+                                ? CircularProgressIndicator(
+                                  color: theme.colorScheme.background,
+                                )
+                                : Text(
+                                  "Se connecter",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.background,
+                                  ),
+                                ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              /// lien vers register
+              const Text("Vous n'avez pas de compte ?"),
+              TextButton(
+                onPressed: () => Navigator.pushNamed(context, "/register"),
+                child: Text(
+                  "Créer un compte",
+                  style: TextStyle(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _socialLoginButton({
+  /// ✅ fonction champ input moderne
+  Widget _inputField({
+    required TextEditingController controller,
+    required String label,
     required IconData icon,
-    required Color color,
-    required VoidCallback onPressed,
+    required String validatorMsg,
+    bool isPassword = false,
+    bool obscurePassword = false,
+    VoidCallback? togglePasswordVisibility,
+    TextInputType? keyboardType,
   }) {
-    return InkWell(
-      onTap: onPressed,
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: Icon(icon, color: color, size: 30),
+    return TextFormField(
+      controller: controller,
+      obscureText: obscurePassword,
+      keyboardType: keyboardType,
+      validator: (v) => (v == null || v.isEmpty) ? validatorMsg : null,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
+        suffixIcon:
+            isPassword
+                ? IconButton(
+                  onPressed: togglePasswordVisibility,
+                  icon: Icon(
+                    obscurePassword ? Icons.visibility : Icons.visibility_off,
+                  ),
+                )
+                : null,
+        filled: true,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
   }

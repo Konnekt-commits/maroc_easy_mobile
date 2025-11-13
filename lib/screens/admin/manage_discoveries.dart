@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:maroceasy/widgets/annonceSearchField.dart';
+import 'package:maroceasy/widgets/categoryIconMapper.dart';
 import 'package:maroceasy/widgets/loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
@@ -513,487 +515,690 @@ class _ManageDiscoveriesState extends State<ManageDiscoveries> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Search and add discovery row
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      decoration: const InputDecoration(
-                        hintText: 'Rechercher une découverte...',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(20)),
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary; // 0xFFF1787A
+    final accent = theme.colorScheme.secondary; // 0xFF789E9E
+    final neutral = Colors.grey[100]!;
+
+    return Scaffold(
+      backgroundColor: theme.colorScheme.background,
+      body: Stack(
+        children: [
+          // Main content
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Search + actions row
+                Row(
+                  children: [
+                    // Search field - rounded, subtle shadow
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Rechercher une découverte...',
+                            prefixIcon: const Icon(
+                              Icons.search,
+                              color: Colors.grey,
+                            ),
+                            filled: true,
+                            fillColor: Theme.of(
+                              context,
+                            ).colorScheme.onSecondary.withOpacity(0.05),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                            ),
+                          ),
+                          onChanged: (value) {
+                            setState(() => _searchQuery = value);
+                          },
                         ),
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value;
-                        });
-                      },
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    // Add (FAB-style small)
+                    FloatingActionButton.small(
+                      heroTag: 'fab_add_discovery',
+                      onPressed: _toggleAddDiscoveryForm,
+                      backgroundColor:
+                          _isAddingDiscovery ? Colors.grey : primary,
+                      child: Icon(
+                        _isAddingDiscovery ? Icons.close : Icons.add,
+                        color: Colors.white,
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    // Refresh
+                    IconButton(
+                      tooltip: 'Rafraîchir',
+                      onPressed: _fetchDiscoveries,
+                      icon: const Icon(Icons.refresh),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 18),
+
+                // Header / optional filters row (place for future)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                  child: Text(
+                    'Découvertes',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.add, color: Colors.white),
-                    onPressed: _toggleAddDiscoveryForm,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.pink,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: _fetchDiscoveries,
-                    tooltip: 'Rafraîchir',
-                  ),
-                ],
-              ),
+                ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
-              // Discoveries list
-              Expanded(
-                child:
-                    _isLoading
-                        ? Center(
-                          child: ListView.builder(
+                // List
+                Expanded(
+                  child:
+                      _isLoading
+                          ? ListView.builder(
                             itemCount: 4,
-                            itemBuilder: (context, index) => LoaderDecouverte(),
-                          ),
-                        )
-                        : _filteredDiscoveries.isEmpty
-                        ? const Center(child: Text('Aucune découverte trouvée'))
-                        : ListView.builder(
-                          itemCount: _filteredDiscoveries.length,
-                          itemBuilder: (context, index) {
-                            final discovery = _filteredDiscoveries[index];
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Image
-                                  if (discovery['picto'] != null &&
-                                      discovery['picto'].isNotEmpty)
-                                    Image.network(
-                                      discovery['picto'],
-                                      width: double.infinity,
-                                      height: 200,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (_, __, ___) => Container(
-                                            width: double.infinity,
+                            itemBuilder:
+                                (context, index) => const Padding(
+                                  padding: EdgeInsets.only(bottom: 12),
+                                  child: LoaderDecouverte(),
+                                ),
+                          )
+                          : _filteredDiscoveries.isEmpty
+                          ? const Center(
+                            child: Text('Aucune découverte trouvée'),
+                          )
+                          : ListView.separated(
+                            itemCount: _filteredDiscoveries.length,
+                            separatorBuilder:
+                                (_, __) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final discovery = _filteredDiscoveries[index];
+                              final picto = discovery['picto'] as String?;
+                              final title = discovery['titre'] ?? 'Sans titre';
+                              final villeName = discovery['ville']?['nom'];
+                              final categoryName =
+                                  discovery['category']?['nom'];
+
+                              return GestureDetector(
+                                onTap: () {
+                                  // Optionnel : ouvrir détails
+                                },
+                                child: Card(
+                                  elevation: 6,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 2,
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      // Image with gradient overlay & title
+                                      Stack(
+                                        children: [
+                                          if (picto != null && picto.isNotEmpty)
+                                            SizedBox(
+                                              height: 200,
+                                              width: double.infinity,
+                                              child: Image.network(
+                                                picto,
+                                                fit: BoxFit.cover,
+                                                errorBuilder:
+                                                    (_, __, ___) => Container(
+                                                      color: Colors.grey[300],
+                                                      child: const Center(
+                                                        child: Icon(
+                                                          Icons
+                                                              .image_not_supported,
+                                                          size: 50,
+                                                        ),
+                                                      ),
+                                                    ),
+                                              ),
+                                            )
+                                          else
+                                            Container(
+                                              height: 200,
+                                              color: Colors.grey[200],
+                                              child: const Center(
+                                                child: Icon(
+                                                  Icons.image,
+                                                  size: 50,
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                            ),
+
+                                          // gradient for legibility
+                                          Container(
                                             height: 200,
-                                            color: Colors.grey[300],
-                                            child: const Icon(
-                                              Icons.image_not_supported,
-                                              size: 50,
-                                              color: Colors.grey,
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.bottomCenter,
+                                                end: Alignment.topCenter,
+                                                colors: [
+                                                  Colors.black.withOpacity(
+                                                    0.55,
+                                                  ),
+                                                  Colors.transparent,
+                                                ],
+                                              ),
                                             ),
                                           ),
-                                    ),
 
-                                  Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          discovery['titre'] ?? 'Sans titre',
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
+                                          // Title bottom-left
+                                          Positioned(
+                                            left: 16,
+                                            bottom: 16,
+                                            child: Text(
+                                              title,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                shadows: [
+                                                  Shadow(
+                                                    blurRadius: 6,
+                                                    color: Colors.black26,
+                                                    offset: Offset(0, 2),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Row(
+
+                                          // Action buttons top-right
+                                          Positioned(
+                                            top: 12,
+                                            right: 12,
+                                            child: Row(
+                                              children: [
+                                                _smallCircleIconButton(
+                                                  icon: Icons.edit,
+                                                  onPressed:
+                                                      () =>
+                                                          _showEditDiscoveryForm(
+                                                            discovery,
+                                                          ),
+                                                  bgColor: Colors.black26,
+                                                  iconColor: Colors.white,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                _smallCircleIconButton(
+                                                  icon: Icons.delete,
+                                                  onPressed:
+                                                      () =>
+                                                          _showDeleteConfirmation(
+                                                            discovery,
+                                                          ),
+                                                  bgColor: Colors.black26,
+                                                  iconColor: Colors.white,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+
+                                      // Meta + description excerpt
+                                      Padding(
+                                        padding: const EdgeInsets.all(14.0),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            if (discovery['ville'] != null)
-                                              Row(
-                                                children: [
+                                            Row(
+                                              children: [
+                                                if (villeName != null) ...[
                                                   const Icon(
                                                     Icons.location_on,
                                                     size: 16,
                                                     color: Colors.grey,
                                                   ),
-                                                  const SizedBox(width: 4),
+                                                  const SizedBox(width: 6),
                                                   Text(
-                                                    discovery['ville']['nom'],
+                                                    villeName,
                                                     style: TextStyle(
-                                                      color: Colors.grey[600],
+                                                      color: Colors.grey[700],
                                                     ),
                                                   ),
+                                                  const SizedBox(width: 16),
                                                 ],
-                                              ),
-                                            const SizedBox(width: 16),
-                                            if (discovery['category'] != null)
-                                              Row(
-                                                children: [
-                                                  const Icon(
-                                                    Icons.category,
+                                                if (categoryName != null) ...[
+                                                  Icon(
+                                                    CategoryIconMapper.getIconForCategory(
+                                                      categoryName,
+                                                    ),
                                                     size: 16,
                                                     color: Colors.grey,
                                                   ),
-                                                  const SizedBox(width: 4),
+                                                  const SizedBox(width: 6),
                                                   Text(
-                                                    discovery['category']['nom'],
+                                                    categoryName,
                                                     style: TextStyle(
-                                                      color: Colors.grey[600],
+                                                      color: Colors.grey[700],
                                                     ),
                                                   ),
                                                 ],
-                                              ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          discovery['description'] ??
-                                              'Pas de description',
-                                          maxLines: 3,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.end,
-                                          children: [
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.edit,
-                                                color: Colors.blue,
-                                              ),
-                                              onPressed: () {
-                                                _showEditDiscoveryForm(
-                                                  discovery,
-                                                );
-                                              },
+                                              ],
                                             ),
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.delete,
-                                                color: Colors.red,
-                                              ),
-                                              onPressed: () {
-                                                _showDeleteConfirmation(
-                                                  discovery,
-                                                );
-                                              },
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              discovery['description'] ??
+                                                  'Pas de description',
+                                              maxLines: 3,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ],
                                         ),
-                                      ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                ),
+              ],
+            ),
+          ),
+
+          // Overlay + blurred background when form open
+          if (_isAddingDiscovery || _isEditingDiscovery) ...[
+            // Backdrop blur + dim
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () {
+                  FocusScope.of(context).unfocus();
+                  _cancelForm();
+                },
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                  child: Container(color: Colors.black.withOpacity(0.25)),
+                ),
+              ),
+            ),
+
+            // Slide-up modern bottom form
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.78,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.background,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.12),
+                        blurRadius: 12,
+                        offset: const Offset(0, -6),
+                      ),
+                    ],
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(18.0),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Header
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    _isEditingDiscovery
+                                        ? 'Modifier la découverte'
+                                        : 'Ajouter une découverte',
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.close),
+                                    onPressed: _cancelForm,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Title
+                              TextFormField(
+                                controller: _titleController,
+                                decoration: InputDecoration(
+                                  labelText: 'Titre',
+                                  filled: true,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                validator:
+                                    (v) =>
+                                        (v == null || v.isEmpty)
+                                            ? 'Veuillez entrer un titre'
+                                            : null,
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Description
+                              TextFormField(
+                                controller: _descriptionController,
+                                decoration: InputDecoration(
+                                  labelText: 'Description',
+                                  filled: true,
+
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                maxLines: 4,
+                                validator:
+                                    (v) =>
+                                        (v == null || v.isEmpty)
+                                            ? 'Veuillez entrer une description'
+                                            : null,
+                              ),
+                              const SizedBox(height: 12),
+
+                              // City & Category dropdowns (kept behavior)
+                              DropdownButtonFormField<int>(
+                                decoration: InputDecoration(
+                                  labelText: 'Ville',
+                                  filled: true,
+
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                value: _selectedCityId,
+                                items:
+                                    _cities.map<DropdownMenuItem<int>>((city) {
+                                      return DropdownMenuItem<int>(
+                                        value: city['id'],
+                                        child: Text(city['nom']),
+                                      );
+                                    }).toList(),
+                                onChanged:
+                                    (v) => setState(() => _selectedCityId = v),
+                                validator:
+                                    (v) =>
+                                        v == null
+                                            ? 'Veuillez sélectionner une ville'
+                                            : null,
+                              ),
+                              const SizedBox(height: 12),
+                              DropdownButtonFormField<int>(
+                                decoration: InputDecoration(
+                                  labelText: 'Catégorie',
+                                  filled: true,
+
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                value: _selectedCategoryId,
+                                items:
+                                    _categories.map<DropdownMenuItem<int>>((
+                                      category,
+                                    ) {
+                                      return DropdownMenuItem<int>(
+                                        value: category['id'],
+                                        child: Text(category['nom']),
+                                      );
+                                    }).toList(),
+                                onChanged:
+                                    (v) =>
+                                        setState(() => _selectedCategoryId = v),
+                                validator:
+                                    (v) =>
+                                        v == null
+                                            ? 'Veuillez sélectionner une catégorie'
+                                            : null,
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // AnnonceSearchField preserved
+                              AnnonceSearchField(
+                                ville: _selectedCityId ?? -1,
+                                category: _selectedCategoryId ?? -1,
+                                controller: _annonceController,
+                                onSelected: (id, title) {
+                                  _annonceController.text = title;
+                                  setState(() => _selectedAnnonceId = id);
+                                },
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // Current image preview when editing
+                              if (_isEditingDiscovery &&
+                                  _editingDiscoveryId != null) ...[
+                                const Text('Image actuelle:'),
+                                const SizedBox(height: 8),
+                                Container(
+                                  height: 100,
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: Colors.grey[300]!,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child:
+                                      _discoveries.firstWhere(
+                                                (d) =>
+                                                    d['id'] ==
+                                                    _editingDiscoveryId,
+                                                orElse: () => {'picto': ''},
+                                              )['picto'] !=
+                                              null
+                                          ? Image.network(
+                                            _discoveries.firstWhere(
+                                              (d) =>
+                                                  d['id'] ==
+                                                  _editingDiscoveryId,
+                                              orElse: () => {'picto': ''},
+                                            )['picto'],
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (_, __, ___) => const Center(
+                                                  child: Icon(
+                                                    Icons.image_not_supported,
+                                                    size: 50,
+                                                    color: Colors.grey,
+                                                  ),
+                                                ),
+                                          )
+                                          : const Center(
+                                            child: Text("Pas d'image"),
+                                          ),
+                                ),
+                                const SizedBox(height: 12),
+                              ],
+
+                              // Pick image area
+                              InkWell(
+                                onTap: _pickImage,
+                                child: Container(
+                                  height: 150,
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.grey[300]!,
+                                    ),
+                                  ),
+                                  child:
+                                      _selectedImage != null
+                                          ? ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            child: Image.file(
+                                              _selectedImage!,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          )
+                                          : Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.add_photo_alternate,
+                                                size: 46,
+                                                color: Colors.grey[500],
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                _isEditingDiscovery
+                                                    ? 'Nouvelle image (optionnel)'
+                                                    : 'Sélectionner une image',
+                                              ),
+                                            ],
+                                          ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 18),
+
+                              // Actions
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  TextButton(
+                                    onPressed: _cancelForm,
+                                    child: const Text(
+                                      'Annuler',
+                                      style: TextStyle(color: Colors.pink),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      if (_formKey.currentState!.validate()) {
+                                        if (!_isEditingDiscovery &&
+                                            _selectedImage == null) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                "Veuillez sélectionner une image.",
+                                              ),
+                                            ),
+                                          );
+                                          return;
+                                        }
+                                        if (_isEditingDiscovery &&
+                                            _editingDiscoveryId != null) {
+                                          _updateDiscovery(
+                                            _editingDiscoveryId!,
+                                          );
+                                        } else {
+                                          _addDiscovery();
+                                        }
+                                        FocusScope.of(context).unfocus();
+                                        _cancelForm();
+                                      } else {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Veuillez corriger les erreurs.',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: primary,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                        vertical: 12,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      _isEditingDiscovery
+                                          ? 'Enregistrer'
+                                          : 'Ajouter',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                            );
-                          },
-                        ),
-              ),
-            ],
-          ),
-        ),
-
-        // Invisible overlay to detect taps outside the form
-        if (_isAddingDiscovery || _isEditingDiscovery)
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: _cancelForm,
-              child: Container(color: Colors.black.withOpacity(0.3)),
-            ),
-          ),
-
-        // Form that slides up from bottom
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 500),
-            height: _formHeight,
-            curve: Curves.easeInOut,
-            child: SingleChildScrollView(
-              child: Card(
-                margin: const EdgeInsets.symmetric(vertical: 16),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              _isEditingDiscovery
-                                  ? 'Modifier la découverte'
-                                  : 'Ajouter une découverte',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            // Close button
-                            IconButton(
-                              icon: const Icon(Icons.close),
-                              onPressed: _cancelForm,
-                              tooltip: 'Fermer',
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _titleController,
-                          decoration: const InputDecoration(
-                            labelText: 'Titre',
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Veuillez entrer un titre';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _descriptionController,
-                          decoration: const InputDecoration(
-                            labelText: 'Description',
-                            border: OutlineInputBorder(),
-                          ),
-                          maxLines: 3,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Veuillez entrer une description';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        DropdownButtonFormField<int>(
-                          decoration: const InputDecoration(
-                            labelText: 'Ville',
-                            border: OutlineInputBorder(),
-                          ),
-                          value: _selectedCityId,
-                          items:
-                              _cities.map<DropdownMenuItem<int>>((city) {
-                                return DropdownMenuItem<int>(
-                                  value: city['id'],
-                                  child: Text(city['nom']),
-                                );
-                              }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedCityId = value;
-                            });
-                          },
-                          validator: (value) {
-                            if (value == null) {
-                              return 'Veuillez sélectionner une ville';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        DropdownButtonFormField<int>(
-                          decoration: const InputDecoration(
-                            labelText: 'Catégorie',
-                            border: OutlineInputBorder(),
-                          ),
-                          value: _selectedCategoryId,
-                          items:
-                              _categories.map<DropdownMenuItem<int>>((
-                                category,
-                              ) {
-                                return DropdownMenuItem<int>(
-                                  value: category['id'],
-                                  child: Text(category['nom']),
-                                );
-                              }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedCategoryId = value;
-                            });
-                          },
-                          validator: (value) {
-                            if (value == null) {
-                              return 'Veuillez sélectionner une catégorie';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        AnnonceSearchField(
-                          ville: _selectedCityId ?? -1,
-                          category: _selectedCategoryId ?? -1,
-                          controller: _annonceController,
-                          onSelected: (id, title) {
-                            _annonceController.text = title;
-                            setState(() {
-                              _selectedAnnonceId = id;
-                            });
-                            print(
-                              "Annonce sélectionnée → id: $id, titre: $title",
-                            );
-                            // tu peux stocker l’id dans une variable pour ton backend
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        if (_isEditingDiscovery && _editingDiscoveryId != null)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Image actuelle:'),
-                              const SizedBox(height: 8),
-                              Container(
-                                height: 100,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child:
-                                    _discoveries.firstWhere(
-                                              (discovery) =>
-                                                  discovery['id'] ==
-                                                  _editingDiscoveryId,
-                                              orElse: () => {'picto': ''},
-                                            )['picto'] !=
-                                            null
-                                        ? Image.network(
-                                          _discoveries.firstWhere(
-                                            (discovery) =>
-                                                discovery['id'] ==
-                                                _editingDiscoveryId,
-                                            orElse: () => {'picto': ''},
-                                          )['picto'],
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (_, __, ___) => const Center(
-                                                child: Icon(
-                                                  Icons.image_not_supported,
-                                                  size: 50,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                        )
-                                        : const Center(
-                                          child: Text('Pas d\'image'),
-                                        ),
-                              ),
-                              const SizedBox(height: 16),
                             ],
                           ),
-                        InkWell(
-                          onTap: _pickImage,
-                          child: Container(
-                            height: 150,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child:
-                                _selectedImage != null
-                                    ? Image.file(
-                                      _selectedImage!,
-                                      fit: BoxFit.cover,
-                                    )
-                                    : Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(
-                                          Icons.add_photo_alternate,
-                                          size: 50,
-                                          color: Colors.grey,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          _isEditingDiscovery
-                                              ? 'Nouvelle image (optionnel)'
-                                              : 'Sélectionner une image',
-                                        ),
-                                      ],
-                                    ),
-                          ),
                         ),
-                        const SizedBox(height: 24),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: _cancelForm,
-                              child: const Text(
-                                'Annuler',
-                                style: const TextStyle(color: Colors.pink),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            ElevatedButton(
-                              onPressed: () {
-                                if (_formKey.currentState!.validate()) {
-                                  // ✅ Vérification supplémentaire pour l'image si on ajoute
-                                  if (!_isEditingDiscovery &&
-                                      _selectedImage == null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          "Veuillez sélectionner une image.",
-                                        ),
-                                      ),
-                                    );
-                                    return; // ❌ Stoppe l'ajout
-                                  }
-
-                                  // ✅ tous les champs obligatoires sont remplis
-                                  if (_isEditingDiscovery &&
-                                      _editingDiscoveryId != null) {
-                                    _updateDiscovery(_editingDiscoveryId!);
-                                  } else {
-                                    _addDiscovery();
-                                  }
-                                  // 🔽 Fermer le clavier
-                                  FocusScope.of(context).unfocus();
-                                } else {
-                                  // ❌ au moins un champ est vide → erreur affichée en rouge
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Veuillez corriger les erreurs.',
-                                      ),
-                                    ),
-                                  );
-                                }
-                              },
-
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.pink,
-                              ),
-                              child: Text(
-                                _isEditingDiscovery ? 'Enregistrer' : 'Ajouter',
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        ),
-      ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  // Helper - small circular icon button
+  Widget _smallCircleIconButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    Color bgColor = Colors.black12,
+    Color iconColor = Colors.black,
+  }) {
+    return Material(
+      color: bgColor,
+      shape: const CircleBorder(),
+      child: IconButton(
+        icon: Icon(icon, size: 18, color: iconColor),
+        onPressed: onPressed,
+        padding: const EdgeInsets.all(8),
+        constraints: const BoxConstraints(),
+      ),
     );
   }
 }

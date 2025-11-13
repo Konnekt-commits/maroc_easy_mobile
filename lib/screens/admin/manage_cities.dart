@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:maroceasy/widgets/loader.dart';
@@ -377,52 +378,56 @@ class _ManageCitiesState extends State<ManageCities> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Search and add city row
+              // Barre de recherche + bouton ajouter
               Row(
                 children: [
                   Expanded(
                     child: TextField(
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'Rechercher une ville...',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(20)),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Colors.grey,
                         ),
+                        filled: true,
+                        fillColor: Theme.of(
+                          context,
+                        ).colorScheme.onSecondary.withOpacity(0.05),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 0),
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value;
-                        });
-                      },
+                      onChanged:
+                          (value) => setState(() {
+                            _searchQuery = value;
+                          }),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  IconButton(
-                    icon: Icon(
+                  const SizedBox(width: 12),
+                  FloatingActionButton.small(
+                    onPressed: _toggleAddCityForm,
+                    backgroundColor:
+                        _isAddingCity
+                            ? Colors.grey
+                            : Theme.of(context).colorScheme.primary,
+                    child: Icon(
                       _isAddingCity ? Icons.close : Icons.add,
                       color: Colors.white,
-                    ),
-                    onPressed: _toggleAddCityForm,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          _isAddingCity ? Colors.grey : Colors.pink,
-                      foregroundColor: Colors.white,
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 20),
 
-              SizedBox(height: 16),
-
-              // Cities list
+              // Liste des villes
               Expanded(
                 child:
                     _isLoading
-                        ? Center(
-                          child: ListView.builder(
-                            itemCount: 4,
-                            itemBuilder: (context, index) => LoaderVille(),
-                          ),
+                        ? ListView.builder(
+                          itemCount: 4,
+                          itemBuilder: (_, __) => LoaderVille(),
                         )
                         : _filteredCities.isEmpty
                         ? const Center(child: Text('Aucune ville trouvée'))
@@ -431,67 +436,85 @@ class _ManageCitiesState extends State<ManageCities> {
                           itemBuilder: (context, index) {
                             final city = _filteredCities[index];
                             return Card(
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                               margin: const EdgeInsets.only(bottom: 16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              clipBehavior: Clip.antiAlias,
+                              child: Stack(
                                 children: [
-                                  // Image
                                   if (city['picto'] != null &&
                                       city['picto'].isNotEmpty)
                                     Image.network(
                                       city['picto'],
+                                      height: 180,
                                       width: double.infinity,
-                                      height: 150,
                                       fit: BoxFit.cover,
                                       errorBuilder:
                                           (_, __, ___) => Container(
-                                            width: double.infinity,
-                                            height: 150,
                                             color: Colors.grey[300],
+                                            height: 180,
                                             child: const Icon(
-                                              Icons.image_not_supported,
+                                              Icons.image,
                                               size: 50,
-                                              color: Colors.grey,
                                             ),
                                           ),
                                     ),
-
-                                  Padding(
-                                    padding: const EdgeInsets.all(16.0),
+                                  Container(
+                                    height: 180,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.black.withOpacity(0.6),
+                                          Colors.transparent,
+                                        ],
+                                        begin: Alignment.bottomCenter,
+                                        end: Alignment.topCenter,
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    bottom: 12,
+                                    left: 16,
+                                    child: Text(
+                                      city['nom'] ?? 'Sans nom',
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
                                     child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          city['nom'] ?? 'Sans nom',
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
+                                        IconButton(
+                                          onPressed:
+                                              () => _showEditCityForm(city),
+                                          icon: const Icon(
+                                            Icons.edit,
+                                            color: Colors.white,
+                                          ),
+                                          style: IconButton.styleFrom(
+                                            backgroundColor: Colors.black26
+                                                .withOpacity(0.3),
                                           ),
                                         ),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.end,
-                                          children: [
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.edit,
-                                                color: Colors.blue,
-                                              ),
-                                              onPressed: () {
-                                                _showEditCityForm(city);
-                                              },
-                                            ),
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.delete,
-                                                color: Colors.pink,
-                                              ),
-                                              onPressed: () {
-                                                _showDeleteConfirmation(city);
-                                              },
-                                            ),
-                                          ],
+                                        IconButton(
+                                          onPressed:
+                                              () =>
+                                                  _showDeleteConfirmation(city),
+                                          icon: const Icon(
+                                            Icons.delete,
+                                            color: Colors.white,
+                                          ),
+                                          style: IconButton.styleFrom(
+                                            backgroundColor: Colors.black26
+                                                .withOpacity(0.3),
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -506,25 +529,42 @@ class _ManageCitiesState extends State<ManageCities> {
           ),
         ),
 
-        // Invisible overlay to detect taps outside the form
+        // Overlay sombre et flou pour le formulaire
         if (_isAddingCity || _isEditingCity)
           Positioned.fill(
             child: GestureDetector(
-              onTap: _cancelForm,
-              child: Container(color: Colors.black.withOpacity(0.3)),
+              onTap: () {
+                FocusScope.of(context).unfocus();
+                _cancelForm();
+              },
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                child: Container(color: Colors.black.withOpacity(0.3)),
+              ),
             ),
           ),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 500),
-            height: _formHeight,
-            curve: Curves.easeInOut,
-            child: SingleChildScrollView(
-              child: Card(
-                margin: const EdgeInsets.symmetric(vertical: 16),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+
+        // Formulaire moderne
+        if (_isAddingCity || _isEditingCity)
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOutCubic,
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.background,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10,
+                      offset: Offset(0, -3),
+                    ),
+                  ],
+                ),
+                child: SingleChildScrollView(
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -538,100 +578,67 @@ class _ManageCitiesState extends State<ManageCities> {
                                   ? 'Modifier la ville'
                                   : 'Ajouter une ville',
                               style: const TextStyle(
-                                fontSize: 18,
+                                fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            // Close button
                             IconButton(
                               icon: const Icon(Icons.close),
                               onPressed: _cancelForm,
-                              tooltip: 'Fermer',
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        // Rest of the form content remains the same
                         TextFormField(
                           controller: _nameController,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: 'Nom de la ville *',
-                            border: OutlineInputBorder(),
+                            filled: true,
+                            fillColor: Theme.of(
+                              context,
+                            ).colorScheme.onSecondary.withOpacity(0.05),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return "Veuillez entrer le nom de la ville";
-                            }
-                            return null; // ✅ pas d'erreur
-                          },
+                          validator:
+                              (value) =>
+                                  (value == null || value.isEmpty)
+                                      ? "Veuillez entrer le nom de la ville"
+                                      : null,
                         ),
                         const SizedBox(height: 16),
                         TextField(
                           controller: _regionController,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: 'Région',
-                            border: OutlineInputBorder(),
+                            filled: true,
+                            fillColor: Theme.of(
+                              context,
+                            ).colorScheme.onSecondary.withOpacity(0.05),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
-
                         const SizedBox(height: 16),
-                        if (_isEditingCity && _editingCityId != null)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Image actuelle:'),
-                              const SizedBox(height: 8),
-                              Container(
-                                height: 100,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child:
-                                    _cities.firstWhere(
-                                              (city) =>
-                                                  city['id'] == _editingCityId,
-                                              orElse: () => {'picto': ''},
-                                            )['picto'] !=
-                                            null
-                                        ? Image.network(
-                                          _cities.firstWhere(
-                                            (city) =>
-                                                city['id'] == _editingCityId,
-                                            orElse: () => {'picto': ''},
-                                          )['picto'],
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (_, __, ___) => const Center(
-                                                child: Icon(
-                                                  Icons.image_not_supported,
-                                                  size: 50,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                        )
-                                        : const Center(
-                                          child: Text('Pas d\'image'),
-                                        ),
-                              ),
-                              const SizedBox(height: 16),
-                            ],
-                          ),
                         InkWell(
                           onTap: _pickImage,
                           child: Container(
-                            height: 150,
+                            height: 160,
                             width: double.infinity,
                             decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey),
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[300]!),
                             ),
                             child:
                                 _selectedImage != null
-                                    ? Image.file(
-                                      _selectedImage!,
-                                      fit: BoxFit.cover,
+                                    ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Image.file(
+                                        _selectedImage!,
+                                        fit: BoxFit.cover,
+                                      ),
                                     )
                                     : Column(
                                       mainAxisAlignment:
@@ -647,6 +654,9 @@ class _ManageCitiesState extends State<ManageCities> {
                                           _isEditingCity
                                               ? 'Nouvelle image (optionnel)'
                                               : 'Sélectionner une image',
+                                          style: const TextStyle(
+                                            color: Colors.grey,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -660,14 +670,13 @@ class _ManageCitiesState extends State<ManageCities> {
                               onPressed: _cancelForm,
                               child: const Text(
                                 'Annuler',
-                                style: const TextStyle(color: Colors.pink),
+                                style: TextStyle(color: Colors.pink),
                               ),
                             ),
                             const SizedBox(width: 16),
                             ElevatedButton(
                               onPressed: () {
                                 if (_formKey.currentState!.validate()) {
-                                  // ✅ Vérification supplémentaire pour l'image si on ajoute
                                   if (!_isEditingCity &&
                                       _selectedImage == null) {
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -677,32 +686,27 @@ class _ManageCitiesState extends State<ManageCities> {
                                         ),
                                       ),
                                     );
-                                    return; // ❌ Stoppe l'ajout
+                                    return;
                                   }
-
-                                  // ✅ tous les champs obligatoires sont remplis
                                   if (_isEditingCity &&
                                       _editingCityId != null) {
                                     _updateCity(_editingCityId!);
                                   } else {
                                     _addCity();
                                   }
-                                  _cancelForm();
-                                  // 🔽 Fermer le clavier
                                   FocusScope.of(context).unfocus();
-                                } else {
-                                  // ❌ au moins un champ est vide → erreur affichée en rouge
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Veuillez corriger les erreurs.',
-                                      ),
-                                    ),
-                                  );
+                                  _cancelForm();
                                 }
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.pink,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 28,
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                               child: Text(
                                 _isEditingCity ? 'Enregistrer' : 'Ajouter',
@@ -718,7 +722,6 @@ class _ManageCitiesState extends State<ManageCities> {
               ),
             ),
           ),
-        ),
       ],
     );
   }

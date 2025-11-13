@@ -19,7 +19,7 @@ class _AdminPageState extends State<AdminPage> {
           Icon(
             Icons.admin_panel_settings,
             size: 80,
-            color: Colors.pink.withOpacity(0.5),
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
           ),
           const SizedBox(height: 20),
           const Text(
@@ -36,7 +36,7 @@ class _AdminPageState extends State<AdminPage> {
           ElevatedButton(
             onPressed: () {},
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.pink,
+              backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(

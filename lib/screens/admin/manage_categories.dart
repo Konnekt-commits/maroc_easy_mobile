@@ -123,38 +123,54 @@ class _ManageCategoriesState extends State<ManageCategories> {
             children: [
               Expanded(
                 child: TextField(
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Rechercher une catégorie...',
-                    prefixIcon: Icon(Icons.search),
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    filled: true,
+                    fillColor: Theme.of(
+                      context,
+                    ).colorScheme.onSecondary.withOpacity(0.05),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(20)),
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide.none,
                     ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value;
-                    });
-                  },
+                  onChanged:
+                      (value) => setState(() {
+                        _searchQuery = value;
+                      }),
                 ),
               ),
-              IconButton(
-                onPressed: () {
-                  _showAddCategoryDialog();
-                },
-                icon: const Icon(Icons.add, color: Colors.white),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: _showAddCategoryDialog,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.pink,
-                  foregroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 16,
+                    vertical: 12,
                   ),
                 ),
+                child: const Icon(Icons.add, color: Colors.white),
               ),
-              IconButton(
-                icon: const Icon(Icons.refresh),
+              const SizedBox(width: 8),
+              ElevatedButton(
                 onPressed: _fetchCategories,
-                tooltip: 'Rafraîchir',
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[300],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+                child: const Icon(Icons.refresh, color: Colors.black87),
               ),
             ],
           ),
@@ -181,6 +197,8 @@ class _ManageCategoriesState extends State<ManageCategories> {
                         direction: Axis.horizontal,
                         children: List.generate(_categories.length, (index) {
                           return Card(
+                            shadowColor:
+                                Theme.of(context).colorScheme.onSecondary,
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: Row(
@@ -268,85 +286,146 @@ class _ManageCategoriesState extends State<ManageCategories> {
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
-            title: const Text('Ajouter une catégorie'),
-            content: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<String>(
-                    value: _selectedCategoryName,
-                    decoration: const InputDecoration(
-                      labelText: 'Nom de la catégorie',
-                      border: OutlineInputBorder(),
-                    ),
-                    items:
-                        _availableCategories.map((category) {
-                          return DropdownMenuItem(
-                            value: category,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  CategoryIconMapper.getIconForCategory(
-                                    category,
-                                  ),
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(category, style: TextStyle(fontSize: 12)),
-                              ],
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Titre
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Ajouter',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
                             ),
-                          );
-                        }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedCategoryName = value!;
-                      });
-                    },
-                    validator: (value) {
-                      if (value == null) {
-                        return "Veuillez sélectionner une catégorie";
-                      }
-                      return null; // ✅ pas d'erreur
-                    },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Dropdown
+                      DropdownButtonFormField<String>(
+                        value: _selectedCategoryName,
+                        decoration: InputDecoration(
+                          labelText: 'Nom de la catégorie',
+                          filled: true,
+                          fillColor: Theme.of(
+                            context,
+                          ).colorScheme.onSecondary.withOpacity(0.05),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 14,
+                          ),
+                        ),
+                        items:
+                            _availableCategories.map((category) {
+                              return DropdownMenuItem(
+                                value: category,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      CategoryIconMapper.getIconForCategory(
+                                        category,
+                                      ),
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      category,
+                                      style: const TextStyle(fontSize: 14),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedCategoryName = value!;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return "Veuillez sélectionner une catégorie";
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Boutons
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(
+                              'Annuler',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          ElevatedButton(
+                            onPressed: () {
+                              if (_formKey.currentState!.validate()) {
+                                Navigator.pop(context);
+                                _addCategory();
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Veuillez corriger les erreurs.',
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.primary,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Ajouter',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Annuler',
-                  style: TextStyle(color: Colors.pink),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // ✅ Vérification supplémentaire pour l'image si on ajoute
-                    Navigator.pop(context);
-                    _addCategory();
-                  } else {
-                    // ❌ au moins un champ est vide → erreur affichée en rouge
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Veuillez corriger les erreurs.'),
-                      ),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.pink),
-                child: const Text(
-                  'Ajouter',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
           ),
     );
   }
@@ -357,64 +436,125 @@ class _ManageCategoriesState extends State<ManageCategories> {
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
-            title: const Text('Modifier la catégorie'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  value: _selectedCategoryName,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom de la catégorie',
-                    border: OutlineInputBorder(),
-                  ),
-                  items:
-                      _availableCategories.map((category) {
-                        return DropdownMenuItem(
-                          value: category,
-                          child: Row(
-                            children: [
-                              Icon(
-                                CategoryIconMapper.getIconForCategory(category),
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(category, style: TextStyle(fontSize: 12)),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedCategoryName = value!;
-                    });
-                  },
-                ),
-              ],
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Annuler',
-                  style: TextStyle(color: Colors.pink),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Titre + bouton fermer
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Modifier la catégorie',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Dropdown
+                    DropdownButtonFormField<String>(
+                      value: _selectedCategoryName,
+                      decoration: InputDecoration(
+                        labelText: 'Nom de la catégorie',
+                        filled: true,
+                        fillColor: Theme.of(
+                          context,
+                        ).colorScheme.onSecondary.withOpacity(0.05),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
+                      ),
+                      items:
+                          _availableCategories.map((cat) {
+                            return DropdownMenuItem(
+                              value: cat,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    CategoryIconMapper.getIconForCategory(cat),
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    cat,
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedCategoryName = value!;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Boutons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(
+                            'Annuler',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _updateCategory(category['id']);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 14,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Enregistrer',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _updateCategory(category['id']);
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.pink),
-                child: const Text(
-                  'Enregistrer',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
     );
   }

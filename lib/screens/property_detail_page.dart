@@ -627,7 +627,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
     final LatLng mapCoordinates = widget.coordinates ?? LatLng(50.7304, 3.2583);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.background,
       body: Stack(
         children: [
           CustomScrollView(
@@ -637,9 +637,12 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                 expandedHeight: 300,
                 pinned: true,
                 leading: CircleAvatar(
-                  backgroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).colorScheme.background,
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.black),
+                    icon: Icon(
+                      Icons.arrow_back,
+                      color: Theme.of(context).colorScheme.onSecondary,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
@@ -653,11 +656,14 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                   // ),
                   // const SizedBox(width: 10),
                   CircleAvatar(
-                    backgroundColor: Colors.white,
+                    backgroundColor: Theme.of(context).colorScheme.background,
                     child: IconButton(
                       icon: Icon(
                         _isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: _isFavorite ? Colors.red : Colors.black,
+                        color:
+                            _isFavorite
+                                ? Colors.red
+                                : Theme.of(context).colorScheme.onSecondary,
                       ),
                       onPressed: _toggleFavorite,
                     ),
@@ -711,8 +717,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                       right: 0,
                       child: Container(
                         height: 30,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.background,
                           borderRadius: BorderRadius.only(
                             topLeft: Radius.circular(30),
                             topRight: Radius.circular(30),
@@ -733,7 +739,6 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                     top: 16.0,
                     bottom: 100.0,
                   ),
-                  color: Colors.white,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -757,23 +762,23 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                           vertical: 12,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
                           borderRadius: BorderRadius.circular(12),
+                          color: Theme.of(context).colorScheme.background,
+                          boxShadow: [
+                            BoxShadow(
+                              blurRadius: 4,
+                              color: Theme.of(context).colorScheme.onSecondary,
+                            ),
+                          ],
                         ),
                         child: Row(
                           children: [
-                            Icon(
-                              Icons.location_on,
-                              color: Theme.of(context).primaryColor,
-                            ),
+                            Icon(Icons.location_on),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 widget.location,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.black87,
-                                ),
+                                style: const TextStyle(fontSize: 16),
                               ),
                             ),
                           ],
@@ -810,17 +815,30 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                                     vertical: 8,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey[100],
+                                    color:
+                                        Theme.of(
+                                          context,
+                                        ).colorScheme.background,
                                     borderRadius: BorderRadius.circular(10),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        blurRadius: 4,
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.onSecondary,
+                                      ),
+                                    ],
                                   ),
                                   child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(
                                         _getAmenityIcon(
                                           widget.amenities[index],
                                         ),
                                         size: 20,
-                                        color: Theme.of(context).primaryColor,
                                       ),
                                       const SizedBox(width: 8),
                                       Expanded(
@@ -1218,7 +1236,10 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                                 top: 10,
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color:
+                                        Theme.of(
+                                          context,
+                                        ).colorScheme.background,
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
@@ -1279,7 +1300,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
             child: Container(
               height: 80,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.background,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.1),
@@ -1307,7 +1328,9 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                                   fontSize: 18,
                                   decoration: TextDecoration.underline,
                                   color:
-                                      Colors.black, // Important pour RichText
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .onSecondary, // Important pour RichText
                                 ),
                               ),
                             TextSpan(
@@ -1319,7 +1342,10 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
                                 decoration: TextDecoration.underline,
-                                color: Colors.black, // Important pour RichText
+                                color:
+                                    Theme.of(context)
+                                        .colorScheme
+                                        .onSecondary, // Important pour RichText
                               ),
                             ),
                             if (widget.type == 'logement')
@@ -1344,7 +1370,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                           launchUrl(Uri.parse('tel://' + widget.phone));
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.pink,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 0),
                           shape: RoundedRectangleBorder(
@@ -1377,8 +1404,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
             right: 0,
             height: MediaQuery.of(context).size.height,
             child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.background,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
@@ -1498,14 +1525,14 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                                         borderSide: BorderSide.none,
                                       ),
                                       filled: true,
-                                      fillColor: Colors.grey[200],
                                     ),
                                   ),
                                 ),
                                 SizedBox(
                                   width: 50,
                                   child: IconButton(
-                                    color: Colors.pink,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
                                     onPressed: () {
                                       // Fermer le clavier
                                       FocusScope.of(context).unfocus();

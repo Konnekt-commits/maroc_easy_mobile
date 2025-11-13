@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
@@ -335,39 +336,60 @@ class _ManageProfessionalsState extends State<ManageProfessionals> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
+              // Barre de recherche + bouton ajouter
               Row(
                 children: [
                   Expanded(
                     child: TextField(
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: "Rechercher un utilisateur...",
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(20)),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Colors.grey,
                         ),
+                        filled: true,
+                        fillColor: Theme.of(
+                          context,
+                        ).colorScheme.onSecondary.withOpacity(0.05),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 0),
                       ),
                       onChanged: (v) => setState(() => _searchQuery = v),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  IconButton(
-                    icon: Icon(
+                  const SizedBox(width: 12),
+                  FloatingActionButton.small(
+                    onPressed: _toggleAddUserForm,
+                    backgroundColor:
+                        _isAddingUser
+                            ? Colors.grey
+                            : Theme.of(context).colorScheme.primary,
+                    child: Icon(
                       _isAddingUser ? Icons.close : Icons.add,
                       color: Colors.white,
-                    ),
-                    onPressed: _toggleAddUserForm,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          _isAddingUser ? Colors.grey : Colors.pink,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+
+              // Liste des utilisateurs
               Expanded(
                 child:
                     _isLoading
-                        ? const Center(child: CircularProgressIndicator())
+                        ? ListView.builder(
+                          itemCount: 4,
+                          itemBuilder:
+                              (_, __) => const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(16),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              ),
+                        )
                         : _filteredUsers.isEmpty
                         ? const Center(child: Text("Aucun utilisateur trouvé"))
                         : ListView.builder(
@@ -381,95 +403,119 @@ class _ManageProfessionalsState extends State<ManageProfessionals> {
             ],
           ),
         ),
+
+        // Overlay sombre et flou pour le formulaire
         if (_isAddingUser || _isEditingUser)
           Positioned.fill(
             child: GestureDetector(
               onTap: _cancelForm,
-              child: Container(color: Colors.black.withOpacity(0.3)),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                child: Container(color: Colors.black.withOpacity(0.3)),
+              ),
             ),
           ),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 500),
-            height: _formHeight,
-            child: SingleChildScrollView(
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
+
+        // Formulaire moderne
+        if (_isAddingUser || _isEditingUser)
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOutCubic,
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.background,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10,
+                      offset: Offset(0, -3),
+                    ),
+                  ],
+                ),
+                child: SingleChildScrollView(
                   child: Form(
                     key: _formKey,
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          _isEditingUser
-                              ? "Modifier un utilisateur"
-                              : "Ajouter un utilisateur",
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _isEditingUser
+                                  ? "Modifier un utilisateur"
+                                  : "Ajouter un utilisateur",
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: _cancelForm,
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _lastNameController,
-                          decoration: const InputDecoration(
-                            labelText: "Nom",
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (v) => v!.isEmpty ? "Champ requis" : null,
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _firstNameController,
-                          decoration: const InputDecoration(
-                            labelText: "Prénom",
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (v) => v!.isEmpty ? "Champ requis" : null,
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _usernameController,
-                          decoration: const InputDecoration(
-                            labelText: "Pseudo",
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (v) => v!.isEmpty ? "Champ requis" : null,
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _emailController,
-                          decoration: const InputDecoration(
-                            labelText: "Email",
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (v) => v!.isEmpty ? "Champ requis" : null,
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _passwordController,
-                          decoration: const InputDecoration(
-                            labelText: "Mot de passe",
-                            border: OutlineInputBorder(),
-                          ),
-                          obscureText: true,
-                        ),
-                        const SizedBox(height: 16),
+                        ...[
+                          _lastNameController,
+                          _firstNameController,
+                          _usernameController,
+                          _emailController,
+                          _passwordController,
+                        ].map((controller) {
+                          final label =
+                              controller == _lastNameController
+                                  ? "Nom"
+                                  : controller == _firstNameController
+                                  ? "Prénom"
+                                  : controller == _usernameController
+                                  ? "Pseudo"
+                                  : controller == _emailController
+                                  ? "Email"
+                                  : "Mot de passe";
+                          final obscure = controller == _passwordController;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: TextFormField(
+                              controller: controller,
+                              decoration: InputDecoration(
+                                labelText: label,
+                                filled: true,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              obscureText: obscure,
+                              validator:
+                                  (v) =>
+                                      (v == null || v.isEmpty && !obscure)
+                                          ? "Champ requis"
+                                          : null,
+                            ),
+                          );
+                        }),
                         InkWell(
                           onTap: _pickImage,
                           child: Container(
-                            height: 150,
+                            height: 160,
                             width: double.infinity,
                             decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey),
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[300]!),
                             ),
                             child:
                                 _profileImage != null
-                                    ? Image.file(
-                                      _profileImage!,
-                                      fit: BoxFit.cover,
+                                    ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Image.file(
+                                        _profileImage!,
+                                        fit: BoxFit.cover,
+                                      ),
                                     )
                                     : Column(
                                       mainAxisAlignment:
@@ -480,7 +526,11 @@ class _ManageProfessionalsState extends State<ManageProfessionals> {
                                           size: 50,
                                           color: Colors.grey,
                                         ),
-                                        Text("Choisir une photo"),
+                                        SizedBox(height: 8),
+                                        Text(
+                                          "Choisir une photo",
+                                          style: TextStyle(color: Colors.grey),
+                                        ),
                                       ],
                                     ),
                           ),
@@ -491,9 +541,11 @@ class _ManageProfessionalsState extends State<ManageProfessionals> {
                           children: [
                             TextButton(
                               onPressed: _cancelForm,
-                              child: const Text(
+                              child: Text(
                                 "Annuler",
-                                style: TextStyle(color: Colors.pink),
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -506,10 +558,20 @@ class _ManageProfessionalsState extends State<ManageProfessionals> {
                                   } else {
                                     _addUser();
                                   }
+                                  FocusScope.of(context).unfocus();
+                                  _cancelForm();
                                 }
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.pink,
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.primary,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 28,
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                               child: Text(
                                 _isEditingUser ? "Enregistrer" : "Ajouter",
@@ -525,70 +587,84 @@ class _ManageProfessionalsState extends State<ManageProfessionals> {
               ),
             ),
           ),
-        ),
       ],
     );
   }
 
+  // Version moderne du userCard
   Widget buildUserCard(Map<String, dynamic> user) {
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 3,
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
-          children: [
-            // Avatar
-            user['picto'] != null
-                ? CircleAvatar(
-                  radius: 24,
-                  backgroundImage: NetworkImage(user['picto']),
-                )
-                : const CircleAvatar(radius: 24, child: Icon(Icons.person)),
-
-            const SizedBox(width: 12),
-
-            // Infos utilisateur
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "${user['prenom'] ?? ''} ${user['nom'] ?? ''}",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    user['email'] ?? "",
-                    style: TextStyle(color: Colors.grey[700], fontSize: 14),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+      shadowColor: Theme.of(context).colorScheme.onSecondary,
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          // Avatar + overlay
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).colorScheme.onSecondary.withOpacity(0.6),
+                  Colors.transparent,
                 ],
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
               ),
             ),
-
-            // Actions
-            Row(
-              mainAxisSize: MainAxisSize.min,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blue),
-                  onPressed: () => _showEditUserForm(user),
+                user['picto'] != null
+                    ? CircleAvatar(
+                      radius: 28,
+                      backgroundImage: NetworkImage(user['picto']),
+                    )
+                    : const CircleAvatar(radius: 28, child: Icon(Icons.person)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "${user['prenom'] ?? ''} ${user['nom'] ?? ''}",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSecondary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        user['email'] ?? "",
+                        style: TextStyle(color: Colors.grey[700], fontSize: 14),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.redAccent),
-                  onPressed: () => _showDeleteConfirmation(user),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      onPressed: () => _showEditUserForm(user),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.redAccent),
+                      onPressed: () => _showDeleteConfirmation(user),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
