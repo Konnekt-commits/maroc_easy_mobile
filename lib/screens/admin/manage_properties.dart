@@ -230,6 +230,7 @@ class _ManagePropertiesState extends State<ManageProperties> {
 
   // Selected values
   int? _selectedCityId;
+  String _selectedCityName = "";
   int? _selectedCategoryId;
   List<String> _selectedAmenities = [];
 
@@ -2058,6 +2059,7 @@ class _ManagePropertiesState extends State<ManageProperties> {
 
                               // Address search field (kept)
                               AddressSearchField(
+                                city: _selectedCityName,
                                 onAddressSelected: (address, lat, lon) {
                                   _addressController.text = address;
                                   _updateCoordinatesFromAddress(address);
@@ -2098,7 +2100,15 @@ class _ManagePropertiesState extends State<ManageProperties> {
                                       );
                                     }).toList(),
                                 onChanged: (value) {
-                                  setState(() => _selectedCityId = value);
+                                  setState(() {
+                                    _selectedCityId = value;
+
+                                    _selectedCityName =
+                                        _cities.firstWhere(
+                                          (c) => c["id"] == value,
+                                          orElse: () => null,
+                                        )['nom'];
+                                  });
                                   FocusScope.of(context).unfocus();
                                 },
                                 validator:

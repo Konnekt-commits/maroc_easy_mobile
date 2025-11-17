@@ -229,6 +229,7 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
 
   // Selected values
   int? _selectedCityId;
+  String _selectedCityName = "";
   int? _selectedCategoryId;
   List<String> _selectedAmenities = [];
 
@@ -2053,29 +2054,6 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                               ),
                               const SizedBox(height: 12),
 
-                              // Address search field (kept)
-                              AddressSearchField(
-                                onAddressSelected: (address, lat, lon) {
-                                  _addressController.text = address;
-                                  _updateCoordinatesFromAddress(address);
-                                },
-                              ),
-                              const SizedBox(height: 12),
-
-                              // Website
-                              TextField(
-                                controller: _websiteController,
-                                decoration: InputDecoration(
-                                  labelText: 'Site Web',
-                                  filled: true,
-
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-
                               // City / Category
                               DropdownButtonFormField<int>(
                                 decoration: InputDecoration(
@@ -2095,7 +2073,15 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                                       );
                                     }).toList(),
                                 onChanged: (value) {
-                                  setState(() => _selectedCityId = value);
+                                  setState(() {
+                                    _selectedCityId = value;
+                                    _selectedCityName =
+                                        _cities.firstWhere(
+                                          (c) => c["id"] == value,
+                                          orElse: () => null,
+                                        )['nom'];
+                                    _addressController.text = "";
+                                  });
                                   FocusScope.of(context).unfocus();
                                 },
                                 validator:
@@ -2103,6 +2089,29 @@ class _ManageMyPropertiesState extends State<ManageMyProperties> {
                                         v == null
                                             ? "Veuillez sélectionner une ville"
                                             : null,
+                              ),
+                              const SizedBox(height: 12),
+                              // Address search field (kept)
+                              AddressSearchField(
+                                city: _selectedCityName,
+                                onAddressSelected: (address, lat, lon) {
+                                  _addressController.text = address;
+                                  _updateCoordinatesFromAddress(address);
+                                },
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Website
+                              TextField(
+                                controller: _websiteController,
+                                decoration: InputDecoration(
+                                  labelText: 'Site Web',
+                                  filled: true,
+
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
                               ),
                               const SizedBox(height: 12),
                               DropdownButtonFormField<int>(
